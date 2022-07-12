@@ -110,6 +110,17 @@ function CharT* str_copy(const CharT* str)
 }
 
 template<typename CharT>
+function void str_copy(CharT* buf, const CharT* str)
+{
+    szt len       = str_len(str);
+    // CharT* result = (CharT*)plat_malloc(sizeof(CharT) * (len + 1));
+    for (szt i = 0; i < len; ++i) {
+        buf[i] = *(str + i);
+    }
+    buf[len] = '\0';
+}
+
+template<typename CharT>
 function CharT* str_copy(const CharT* str, szt len)
 {
     CharT* result = (CharT*)plat_malloc(sizeof(CharT) * (len + 1));

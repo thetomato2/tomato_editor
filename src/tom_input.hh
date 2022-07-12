@@ -176,7 +176,7 @@ struct Mouse
 
 struct Keyboard
 {
-   global constexpr szt key_cnt = 41;
+   global constexpr szt key_cnt = 43;
 
     union
     {
@@ -199,6 +199,8 @@ struct Keyboard
             Key left_shift;
             Key tab;
             Key back;
+            Key add;
+            Key subtract;
             Key a;
             Key b;
             Key c;

@@ -64,10 +64,9 @@ union Vertex
     struct
     {
         v4 pos;
-        v4 col;
         v2 uv;
     };
-    f32 e[10];
+    f32 e[6];
 };
 
 struct Quad

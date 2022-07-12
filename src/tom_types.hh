@@ -1,6 +1,6 @@
 #include <cstdint>
 
-typedef int8_t  i8;
+typedef int8_t i8;
 typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
@@ -14,13 +14,11 @@ typedef float f32;
 typedef double f64;
 
 typedef size_t szt;
-typedef unsigned char byt
-;
+typedef unsigned char byt;
 // using byt  u8; // TODO: is this different?
 
 typedef int32_t b32;
 typedef wchar_t wchar;
-
 
 #define U8_MIN 0u
 #define U8_MAX 0xffu
@@ -122,4 +120,10 @@ struct r3
     v3 max;
 };
 
-
+struct r2_i32
+{
+    i32 x_min;
+    i32 y_min;
+    i32 x_max;
+    i32 y_max;
+};

@@ -242,7 +242,8 @@ function void d3d_init(HWND hwnd, GfxState* gfx)
 
     D3D11_DEPTH_STENCIL_DESC depth_stencil_desc { .DepthEnable    = TRUE,
                                                   .DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL,
-                                                  .DepthFunc      = D3D11_COMPARISON_LESS,
+                                                  // NOTE: turned off depth culling
+                                                  .DepthFunc      = D3D11_COMPARISON_ALWAYS,
                                                   .StencilEnable  = FALSE };
 
     ID3D11DepthStencilState* depth_stencil_state;

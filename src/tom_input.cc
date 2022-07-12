@@ -163,6 +163,8 @@ function Input init_input()
     ASSIGN_WIN32_KEY(left_shift);
     ASSIGN_WIN32_KEY(tab);
     ASSIGN_WIN32_KEY(back);
+    ASSIGN_WIN32_KEY(add);
+    ASSIGN_WIN32_KEY(subtract);
     ASSIGN_WIN32_KEY(a);
     ASSIGN_WIN32_KEY(b);
     ASSIGN_WIN32_KEY(c);

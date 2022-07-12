@@ -1,10 +1,11 @@
 #include "tom_core.hh"
-//#include "tom_file_io.cpp"
+#include "tom_file_io.cc"
 #include "tom_graphics.cc"
 #include "tom_camera.cc"
 #include "tom_input.cc"
 #include "tom_sound.cc"
 #include "tom_win32.cc"
+#include "tom_font.cc"
 
 namespace tom
 {
@@ -30,6 +31,7 @@ struct ConstBuf
 {
     m4 proj;
     m4 model;
+    v4 text_col;
     v2 uv_off;
     i32 glyph_all;
 };
@@ -46,7 +48,8 @@ function void app_init(AppState* state)
     auto gfx = &state->gfx;
 
     state->fov         = 1.0f;
-    state->clear_color = { 0.1f, 0.1f, 0.1f, 1.0f };
+    state->clear_color = { 0.086f, 0.086f, 0.086f, 1.0f };
+    state->text_color  = { 0.627f, 0.521f, 0.388f, 1.0f };
     state->vars.unit   = 1.0f;
     state->view        = mat_identity();
 
@@ -61,11 +64,6 @@ function void app_init(AppState* state)
     verts.e[2].pos = { 0.5f, 0.5f, 0.5f, 1.0f };
     verts.e[3].pos = { 0.5f, -0.5f, 0.5f, 1.0f };
 
-    verts.e[0].col = red_v4;
-    verts.e[1].col = red_v4;
-    verts.e[2].col = blue_v4;
-    verts.e[3].col = blue_v4;
-
     verts.e[0].uv = { 0.0f, 0.0f };
     verts.e[1].uv = { 0.0f, 1.0f };
     verts.e[2].uv = { 1.0f, 1.0f };
@@ -75,8 +73,6 @@ function void app_init(AppState* state)
 
     D3D11_INPUT_ELEMENT_DESC input_desc[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(Vertex, pos),
-          D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(Vertex, col),
           D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(Vertex, uv),
           D3D11_INPUT_PER_VERTEX_DATA, 0 }
@@ -102,30 +98,33 @@ function void app_init(AppState* state)
     g_ind_cnt = _countof(inds);
 
     i32 width, height, n_channels;
-    const char* bm_font_path = "./fonts/bitmap.png";
-    stbi_set_flip_vertically_on_load(true);
-    byt* data = stbi_load(bm_font_path, &width, &height, &n_channels, 0);
-    if (data) {
-        D3D11_TEXTURE2D_DESC tex_desc = { .Width      = (u32)width,
-                                          .Height     = (u32)height,
+    const char* font_path = "./fonts/liberation-mono.ttf";
+    // stbi_set_flip_vertically_on_load(true);
+    auto ttf_file = load_ttf_glyph(font_path, 64.0f, 'a');
+    if (ttf_file) {
+        D3D11_TEXTURE2D_DESC tex_desc = { .Width      = (u32)ttf_file.width,
+                                          .Height     = (u32)ttf_file.height,
                                           .MipLevels  = 1,
                                           .ArraySize  = 1,
-                                          .Format     = DXGI_FORMAT_R8G8B8A8_UNORM,
+                                          .Format     = DXGI_FORMAT_R8_UNORM,
                                           .SampleDesc = { .Count = 1, .Quality = 0 },
                                           .Usage      = D3D11_USAGE_IMMUTABLE,
                                           .BindFlags  = D3D11_BIND_SHADER_RESOURCE };
 
-        D3D11_SUBRESOURCE_DATA tex_subrsc_data = { .pSysMem          = (void*)data,
-                                                   .SysMemPitch      = width * sizeof(u32),
+        D3D11_SUBRESOURCE_DATA tex_subrsc_data = { .pSysMem          = (void*)ttf_file.bitmap,
+                                                   .SysMemPitch      = ttf_file.width * sizeof(u8),
                                                    .SysMemSlicePitch = 0 };
 
         D3D_CHECK(gfx->device->CreateTexture2D(&tex_desc, &tex_subrsc_data, &g_tex));
 
     } else {
-        printf("ERROR-> Failed to load %s!", bm_font_path);
+        printf("ERROR-> Failed to load %s!", font_path);
         TOM_INVALID_CODE_PATH;
     }
-    stbi_image_free(data);
+    ttf_file.free();
+
+    const char *font_path2 = "./fonts/Hack-Regular.ttf";
+    state->font_sheet = create_font_sheet(font_path2, 128.0f);
 
     D3D_CHECK(gfx->device->CreateShaderResourceView(g_tex, nullptr, &g_sha_rsc_view));
 
@@ -136,8 +135,6 @@ function void app_init(AppState* state)
                                          .BindFlags      = D3D11_BIND_CONSTANT_BUFFER,
                                          .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE };
     D3D_CHECK(gfx->device->CreateBuffer(&const_buf_desc, 0, &g_const_buf));
-
-    state->font_sheet = create_font_sheet();
 }
 
 function void app_update(AppState* state)
@@ -172,24 +169,33 @@ function void app_update(AppState* state)
     gfx->context->ClearDepthStencilView(gfx->depth_buf_view,
                                         D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-    local int glyph_all = false;
-
     for (u32 i = 0; i < Keyboard::key_cnt; ++i) {
         auto key = state->input.keyboard.keys[i];
         if (key_pressed(key)) {
-            if (key.name == Win32Keys::left_shift || key.name == Win32Keys::back) continue;
-            if (key_down(state->input.keyboard.left_shift))
-                g_text_buf[g_text_i++] = win32key_to_char_mod(key.name);
-            else
-                g_text_buf[g_text_i++] = win32key_to_char(key.name);
+            if (key.name == Win32Keys::left_shift || key.name == Win32Keys::back ||
+                key.name == Win32Keys::add || key.name == Win32Keys::subtract)
+                continue;
+            if (key_down(state->input.keyboard.left_shift)) {
+                char c = win32key_to_char_mod(key.name);
+                if (c) g_text_buf[g_text_i++] = c;
+            } else {
+                char c = win32key_to_char(key.name);
+                if (c) g_text_buf[g_text_i++] = c;
+            }
 
             if (g_text_i == _countof(g_text_buf)) g_text_i = 0;
-            glyph_all = 0;
         }
     }
 
     if (key_pressed(state->input.keyboard.back)) {
         if (g_text_i != 0) --g_text_i;
+    }
+
+    local constexpr f32 scale_inc = 0.005f;
+    if (key_pressed(state->input.keyboard.add)) {
+        g_text_scale += scale_inc;
+    } else if (key_pressed(state->input.keyboard.subtract)) {
+        g_text_scale -= scale_inc;
     }
 
     i32 glyph_ind = 0;
@@ -201,8 +207,9 @@ function void app_update(AppState* state)
         glyph_ind           = get_glyph_index(g_text_buf[i]);
         ConstBuf mapped_buf = { .proj      = state->proj,
                                 .model     = model,
-                                .uv_off    = state->font_sheet.glyphs[glyph_ind].uv,
-                                .glyph_all = glyph_all };
+                                .text_col  = state->text_color,
+                                .uv_off    = {},
+                                .glyph_all = true };
         D3D11_MAPPED_SUBRESOURCE mapped_resrc;
         D3D_CHECK(gfx->context->Map(g_const_buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resrc));
         memcpy(mapped_resrc.pData, &mapped_buf, sizeof(ConstBuf));
@@ -212,7 +219,6 @@ function void app_update(AppState* state)
 
         model = mat_translate_x(model, g_x_step);
         if ((i + 1) % g_line_len == 0) {
-
             model = mat_set_translation_x(model, g_start_pos.x);
             model = mat_translate_y(model, -g_y_step);
         }

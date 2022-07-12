@@ -50,6 +50,7 @@ struct AppState
     m4 wvp;
 
     v4 clear_color;
+    v4 text_color;
     
     ShaderProg main_shader;
     FontSheet font_sheet;

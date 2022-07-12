@@ -2,6 +2,7 @@ cbuffer constants : register(b0)
 {
     float4x4 proj;
     float4x4 model;
+    float4 text_col;
     float2 uv_off;
     int glyph_all;
 };
@@ -9,7 +10,6 @@ cbuffer constants : register(b0)
 struct Vs_In
 {
     float4 pos : POSITION;
-    float4 col : COLOR;
     float2 uv : TEXCOORD;
 };
 
@@ -26,8 +26,8 @@ Vs_Out vs_main(Vs_In IN)
 {
     Vs_Out OUT;
 
-    OUT.col = IN.col;
     OUT.pos = mul(proj, mul(model, IN.pos)); 
+    OUT.col = text_col;
 
     if (glyph_all > 0){
         OUT.coord = IN.uv;
@@ -48,10 +48,12 @@ Vs_Out vs_main(Vs_In IN)
 
 float4 ps_main(Vs_Out IN) : SV_TARGET
 {
-    float4 tex_col =  tex.Sample(samp, IN.coord);
-    tex_col.r += IN.col.r;
-    tex_col.g += IN.col.g;
-    tex_col.b += IN.col.b;
+    float tex_alpha =  tex.Sample(samp, IN.coord);
+    float4 out_col;
+    out_col.r = IN.col.r;
+    out_col.g = IN.col.g;
+    out_col.b = IN.col.b;
+    out_col.a = tex_alpha;
      
-     return tex_col;
+     return out_col;
 }

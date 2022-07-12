@@ -3,7 +3,7 @@ namespace tom
 
 struct ReadFileResult
 {
-    u32 size;
+    szt size;
     void* contents;
 };
 
