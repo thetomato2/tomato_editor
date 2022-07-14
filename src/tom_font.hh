@@ -27,15 +27,19 @@ struct ttf_GlyphResult
 
 struct Glyph
 {
-    i32 x_off, y_off; // top left corner
+    i32 x_off, y_off;  // top left corner
     i32 width, height;
 };
 
 struct FontSheet
 {
+    const char* name;
     u32 glyph_cnt;
     i32 width, height;  // pixels
+    byt* bitmap;
     Glyph glyphs[MAX_GLYPH_CNT];
+    i32 r;
+    i32 x_cnt, y_cnt;
 };
 
 }  // namespace tom

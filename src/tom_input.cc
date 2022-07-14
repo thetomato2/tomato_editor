@@ -92,6 +92,17 @@ function char win32key_to_char_mod(Win32Keys key)
         case x: return 'X';
         case y: return 'Y';
         case z: return 'Z';
+        case add: return '=';
+        case subtract: return '_';
+        case semicolon: return ':';
+        case comma: return '>';
+        case period: return '<';
+        case quotes: return '\"';
+        case open_brackets: return '{';
+        case close_brackets: return '}';
+        case tilde: return '~';
+        case backslash: return '|';
+        case question: return '?';
     }
 
     return '\0';
@@ -137,6 +148,17 @@ function char win32key_to_char(Win32Keys key)
         case x: return 'x';
         case y: return 'y';
         case z: return 'z';
+        case add: return '+';
+        case subtract: return '-';
+        case semicolon: return ';';
+        case comma: return ',';
+        case period: return '.';
+        case quotes: return '\'';
+        case open_brackets: return '[';
+        case close_brackets: return ']';
+        case tilde: return '`';
+        case backslash: return '\\';
+        case question: return '/';
     }
 
     return '\0';
@@ -148,6 +170,7 @@ function Input init_input()
 {
     Input result = {};
 
+    ASSIGN_WIN32_KEY(space);
     ASSIGN_WIN32_KEY(d1);
     ASSIGN_WIN32_KEY(d2);
     ASSIGN_WIN32_KEY(d3);
@@ -158,13 +181,6 @@ function Input init_input()
     ASSIGN_WIN32_KEY(d8);
     ASSIGN_WIN32_KEY(d9);
     ASSIGN_WIN32_KEY(d0);
-    ASSIGN_WIN32_KEY(enter);
-    ASSIGN_WIN32_KEY(space);
-    ASSIGN_WIN32_KEY(left_shift);
-    ASSIGN_WIN32_KEY(tab);
-    ASSIGN_WIN32_KEY(back);
-    ASSIGN_WIN32_KEY(add);
-    ASSIGN_WIN32_KEY(subtract);
     ASSIGN_WIN32_KEY(a);
     ASSIGN_WIN32_KEY(b);
     ASSIGN_WIN32_KEY(c);
@@ -191,6 +207,25 @@ function Input init_input()
     ASSIGN_WIN32_KEY(x);
     ASSIGN_WIN32_KEY(y);
     ASSIGN_WIN32_KEY(z);
+    ASSIGN_WIN32_KEY(enter);
+    ASSIGN_WIN32_KEY(escape);
+    ASSIGN_WIN32_KEY(left_alt);
+    ASSIGN_WIN32_KEY(left_shift);
+    ASSIGN_WIN32_KEY(left_control);
+    ASSIGN_WIN32_KEY(tab);
+    ASSIGN_WIN32_KEY(back);
+    ASSIGN_WIN32_KEY(add);
+    ASSIGN_WIN32_KEY(subtract);
+    ASSIGN_WIN32_KEY(semicolon);
+    ASSIGN_WIN32_KEY(comma);
+    ASSIGN_WIN32_KEY(period);
+    ASSIGN_WIN32_KEY(quotes);
+    ASSIGN_WIN32_KEY(open_brackets);
+    ASSIGN_WIN32_KEY(close_brackets);
+    ASSIGN_WIN32_KEY(tilde);
+    ASSIGN_WIN32_KEY(backslash);
+    ASSIGN_WIN32_KEY(question);
+    ASSIGN_WIN32_KEY(pipe);
 
     return result;
 }

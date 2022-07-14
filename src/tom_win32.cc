@@ -5,7 +5,7 @@ namespace tom
 global bool g_running = true;
 global bool g_pause   = false;
 global bool g_resize  = false;
-WindowDims g_win_dim = {};
+WindowDims g_win_dim  = {};
 i32 g_ms_scroll       = {};
 
 function void toggle_fullscreen(Win32State* state)
@@ -177,6 +177,7 @@ function void process_pending_messages(Win32State* state)
     state->running   = g_running;
     state->pause     = g_pause;
     state->resize    = g_resize;
+    g_resize = false;
     state->win_dims  = g_win_dim;
     state->ms_scroll = g_ms_scroll;
     g_ms_scroll      = 0;

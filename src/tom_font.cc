@@ -85,6 +85,15 @@ function char get_glyph_char(i32 i)
         case 76: return '?';
         case 77: return '/';
         case 78: return '\"';
+        case 79: return ' ';
+        case 80: return '.';
+        case 81: return '>';
+        case 82: return '<';
+        case 83: return '|';
+        case 84: return '[';
+        case 85: return ']';
+        case 86: return '{';
+        case 87: return '}';
     }
 
     return -1;
@@ -95,7 +104,6 @@ function char get_glyph_char(i32 i)
 function i32 get_glyph_index(char c)
 {
     switch (c) {
-        case ' ': return 0;
         case 'a': return 1;
         case 'b': return 2;
         case 'c': return 3;
@@ -174,6 +182,15 @@ function i32 get_glyph_index(char c)
         case '?': return 76;
         case '/': return 77;
         case '\"': return 78;
+        case ' ': return 79;
+        case '.': return 80;
+        case '>': return 81;
+        case '<': return 82;
+        case '|': return 83;
+        case '[': return 84;
+        case ']': return 85;
+        case '{': return 86;
+        case '}': return 87;
     }
 
     return -1;
@@ -203,16 +220,117 @@ function ttf_GlyphResult load_ttf_glyph(const char* file_path, f32 point_sz, cha
     return result;
 }
 
-// NOTE: hard-coded
-// TODO: dynanic font-sheet creation
-function FontSheet create_font_sheet(const char* file_path, f32 point_sz)
+// XXX: MASSIVE MEMORY USAGE!!! Hit 11 GB ram usage mapping font with 1500 glyphs
+function FontSheet create_font_sheet_all(const char* name, const char* file_path, f32 point_sz)
 {
     FontSheet result {};
+    result.name = name;
 
     bool draw_lines = true;
 
-    i32 row_cnt     = 12;
-    i32 glyph_cnt   = 80;
+    auto ttf_file = read_file(file_path);
+    if (ttf_file.contents == nullptr) {
+        TOM_INVALID_CODE_PATH;
+    }
+
+    stbtt_fontinfo font;
+    stbtt_InitFont(&font, (byt*)ttf_file.contents,
+                   stbtt_GetFontOffsetForIndex((byt*)ttf_file.contents, 0));
+
+    i32 row_cnt     = 20;
+    i32 col_cnt     = 1;
+    i32 glyph_cnt   = font.numGlyphs;
+    i32 pad         = 20;
+    i32 max_glyph_x = 0;
+    i32 max_glyph_y = 0;
+
+    f32 scale = stbtt_ScaleForPixelHeight(&font, point_sz);
+    i32 ascent;
+    stbtt_GetFontVMetrics(&font, &ascent, 0, 0);
+
+    // load all the glyphs to get the toal size of the bitmap needed
+    for (i32 i = 0; i < font.numGlyphs; ++i) {
+        r2_i32 bounds;
+        stbtt_GetGlyphBitmapBox(&font, i, scale, scale, &bounds.x_min, &bounds.y_min, &bounds.x_max,
+                                &bounds.y_max);
+        max_glyph_x = max(bounds.x_max - bounds.x_min, max_glyph_x);
+        max_glyph_y = max(bounds.y_max - bounds.y_min, max_glyph_y);
+    }
+
+    // allocate the needed size
+    i32 r         = max(max_glyph_x, max_glyph_y) + pad;
+    result.width  = r * row_cnt;
+    result.height = (glyph_cnt / row_cnt) * r + r;
+    szt buf_sz    = sizeof(byt) * result.width * result.height * glyph_cnt;
+    auto bm_buf   = (byt*)plat_malloc(buf_sz);
+    zero_size(bm_buf, buf_sz);
+
+    i32 baseline = r - r / 4;
+
+    // draw the glyphs to the bitmap
+    i32 cur_x = 0, cur_y = 0;
+    for (i32 i = 0; i < font.numGlyphs; ++i) {
+        ttf_GlyphResult glyph;
+        glyph.bitmap = (void*)stbtt_GetGlyphBitmap(&font, scale, scale, i, &glyph.width,
+                                                   &glyph.height, &glyph.x_off, &glyph.y_off);
+
+        i32 y_off      = baseline + glyph.y_off;
+        i32 x_off      = r / 2 - glyph.width / 2;
+        byt* row       = bm_buf + (cur_x + x_off) + (cur_y + y_off) * result.width;
+        byt* glyph_ptr = (byt*)glyph.bitmap;
+        for (i32 y = 0; y < glyph.height; ++y) {
+            byt* dest_ptr = row;
+            for (i32 x = 0; x < glyph.width; ++x) {
+                *dest_ptr++ = *glyph_ptr++;
+            }
+            row += result.width;
+        }
+        glyph.free();
+
+        cur_x += r;
+        if (i % row_cnt == 0) {
+            cur_x = 0;
+            cur_y += r;
+            ++col_cnt;
+        }
+    }
+
+    if (draw_lines) {
+        for (i32 y = 0; y < result.height; y += r) {
+            byt* row = bm_buf + y * result.width;
+            for (i32 x = 0; x < result.width; ++x) {
+                row[x] = 0xff;
+            }
+        }
+
+        for (i32 y = 0; y < result.height; ++y) {
+            byt* row = bm_buf + y * result.width;
+            for (i32 x = 0; x < result.width; ++x) {
+                if (x % r == 0) row[x] = 0xff;
+            }
+        }
+    }
+
+    result.bitmap = bm_buf;
+    result.r      = r;
+    result.x_cnt  = row_cnt;
+    result.y_cnt  = col_cnt;
+
+    return result;
+}
+
+// NOTE: hard-coded
+// TODO: dynanic font-sheet creation
+function FontSheet create_font_sheet(const char* name, const char* file_path, f32 point_sz)
+{
+    FontSheet result {};
+    result.name = name;
+
+    bool draw_lines = false;
+
+    i32 row_cnt     = 13;
+    i32 col_cnt     = 1;
+    i32 glyph_cnt   = 87;
     i32 pad         = 20;
     i32 max_glyph_x = 0;
     i32 max_glyph_y = 0;
@@ -231,7 +349,7 @@ function FontSheet create_font_sheet(const char* file_path, f32 point_sz)
     stbtt_GetFontVMetrics(&font, &ascent, 0, 0);
 
     // load all the glyphs to get the toal size of the bitmap needed
-    for (i32 i = 1; i < glyph_cnt; ++i) {
+    for (i32 i = 1; i < glyph_cnt + 1; ++i) {
         char c = get_glyph_char(i);
         r2_i32 bounds;
         stbtt_GetCodepointBitmapBox(&font, c, scale, scale, &bounds.x_min, &bounds.y_min,
@@ -252,7 +370,7 @@ function FontSheet create_font_sheet(const char* file_path, f32 point_sz)
 
     // draw the glyphs to the bitmap
     i32 cur_x = 0, cur_y = 0;
-    for (i32 i = 1; i < glyph_cnt; ++i) {
+    for (i32 i = 1; i < glyph_cnt + 1; ++i) {
         char c = get_glyph_char(i);
         ttf_GlyphResult glyph;
         glyph.bitmap = (void*)stbtt_GetCodepointBitmap(&font, scale, scale, c, &glyph.width,
@@ -275,8 +393,10 @@ function FontSheet create_font_sheet(const char* file_path, f32 point_sz)
         if (i % row_cnt == 0) {
             cur_x = 0;
             cur_y += r;
+            ++col_cnt;
         }
     }
+
     if (draw_lines) {
         for (i32 y = 0; y < result.height; y += r) {
             byt* row = bm_buf + y * result.width;
@@ -293,23 +413,35 @@ function FontSheet create_font_sheet(const char* file_path, f32 point_sz)
         }
     }
 
-    if (!dir_exists("./out")) create_dir("./out");
-    stbi_write_png("out/glyphs_table.png", result.width, result.height, 1, bm_buf,
-                   sizeof(byt) * result.width);
-
-#if OLD
-    f32 w = (1.0f / 9.0f) * 1000.0f;
-    f32 h = (1.0f / 9.0f) * 1150.0f;
-
-    for (i32 y = 0; y < 9; ++y) {
-        for (i32 x = 0; x < 9; ++x) {
-            i32 i                 = (y * 9) + x;
-            result.glyphs[i].uv.x = w * (f32)x;
-            result.glyphs[i].uv.y = h * (f32)y;
-        }
-    }
-#endif
+    result.bitmap = bm_buf;
+    result.r      = r;
+    result.x_cnt  = row_cnt;
+    result.y_cnt  = col_cnt;
 
     return result;
 }
+
+function char* write_fontsheet_png(FontSheet* fs)
+{
+    if (!dir_exists("./out")) create_dir("./out");
+    char* path_buf = str_copy("./out/", fs->name, "_glyph_table.png");
+    stbi_write_png(path_buf, fs->width, fs->height, 1, fs->bitmap, sizeof(byt) * fs->width);
+    return path_buf;
+}
+
+function v2 get_uv_offset(FontSheet* fs, i32 glyph_ind)
+{
+    v2 result;
+
+    f32 constexpr border = 2.0f;
+
+    i32 gx = glyph_ind % fs->x_cnt - 1;
+    i32 gy = ((glyph_ind - 1) / fs->x_cnt);
+
+    result.x = (f32)fs->r * (f32)gx;
+    result.y = (f32)fs->height - (f32)fs->r * (f32)(gy + 1);
+
+    return result;
+}
+
 }  // namespace tom

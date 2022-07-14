@@ -43,6 +43,8 @@ struct AppState
     char exe_path[MAX_PATH];
     f32 dt;
     f32 fov;
+    f32 key_repeat_delay;
+    f32 key_repeat_speed;
 
     m4 world;
     m4 view;

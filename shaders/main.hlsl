@@ -3,7 +3,10 @@ cbuffer constants : register(b0)
     float4x4 proj;
     float4x4 model;
     float4 text_col;
+    float2 tex_sz;
     float2 uv_off;
+    float2 i_cnt;
+    float uv_r;
     int glyph_all;
 };
 
@@ -33,14 +36,7 @@ Vs_Out vs_main(Vs_In IN)
         OUT.coord = IN.uv;
     }
     else{
-        // TODO: tex.GetDimensions() doesn't work???
-        float2 tex_sz;
-        tex_sz.x = 1000.0f;
-        tex_sz.y = 1150.0f;
-        float2 offset;
-        offset.x = 0.0f;
-        offset.y = 127.0f;
-        OUT.coord = (uv_off + (tex_sz / 9.0f) * IN.uv) / tex_sz;
+        OUT.coord = (uv_off + (tex_sz / i_cnt) * IN.uv) / tex_sz;
     }
 
     return OUT;

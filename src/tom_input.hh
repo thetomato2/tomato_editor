@@ -1,6 +1,5 @@
 namespace tom
 {
-    
 
 // TODO: why do I have these globals?
 global f64 g_mouse_x;
@@ -176,7 +175,7 @@ struct Mouse
 
 struct Keyboard
 {
-   global constexpr szt key_cnt = 43;
+    global constexpr szt key_cnt = 55;
 
     union
     {
@@ -184,6 +183,7 @@ struct Keyboard
 
         struct
         {
+            Key space;
             Key d1;
             Key d2;
             Key d3;
@@ -194,13 +194,6 @@ struct Keyboard
             Key d8;
             Key d9;
             Key d0;
-            Key enter;
-            Key space;
-            Key left_shift;
-            Key tab;
-            Key back;
-            Key add;
-            Key subtract;
             Key a;
             Key b;
             Key c;
@@ -227,6 +220,25 @@ struct Keyboard
             Key x;
             Key y;
             Key z;
+            Key enter;
+            Key escape;
+            Key left_alt;
+            Key left_shift;
+            Key left_control;
+            Key tab;
+            Key back;
+            Key add;
+            Key subtract;
+            Key semicolon;
+            Key comma;
+            Key period;
+            Key quotes;
+            Key open_brackets;
+            Key close_brackets;
+            Key tilde;
+            Key backslash;
+            Key question;
+            Key pipe;
         };
     };
 };
@@ -283,7 +295,6 @@ struct Input
     Keyboard keyboard;
     Controller controllers[controller_cnt];
 };
-
 
 inline bool key_down(const Button k)
 {

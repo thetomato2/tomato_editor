@@ -20,19 +20,23 @@ global szt g_ind_cnt;
 
 global f32 g_text_scale = 0.075f;
 global v3 g_start_pos   = { -1.0f, 0.52f, 0.0f };
-global f32 g_x_step     = 0.055f;
+global f32 g_x_step     = 0.035f;
 global f32 g_y_step     = 0.06f;
-global u32 g_line_len   = 35;
+global u32 g_line_len   = 58;
 
-global char g_text_buf[512] = {};
-global u32 g_text_i         = 0;
+global char g_text_buf[2048]  = {};
+global u32 g_text_i           = 0;
+global f32 g_key_repeat_timer = 0.0f;
 
 struct ConstBuf
 {
     m4 proj;
     m4 model;
     v4 text_col;
+    v2 tex_sz;
     v2 uv_off;
+    v2 i_cnt;
+    f32 uv_r;
     i32 glyph_all;
 };
 
@@ -47,11 +51,13 @@ function void app_init(AppState* state)
 {
     auto gfx = &state->gfx;
 
-    state->fov         = 1.0f;
-    state->clear_color = { 0.086f, 0.086f, 0.086f, 1.0f };
-    state->text_color  = { 0.627f, 0.521f, 0.388f, 1.0f };
-    state->vars.unit   = 1.0f;
-    state->view        = mat_identity();
+    state->fov              = 1.0f;
+    state->clear_color      = { 0.086f, 0.086f, 0.086f, 1.0f };
+    state->text_color       = { 0.627f, 0.521f, 0.388f, 1.0f };
+    state->vars.unit        = 1.0f;
+    state->view             = mat_identity();
+    state->key_repeat_delay = 0.2f;
+    state->key_repeat_speed = 0.02f;
 
     state->input = init_input();
 
@@ -97,13 +103,20 @@ function void app_init(AppState* state)
     D3D_CHECK(gfx->device->CreateBuffer(&ind_buf_desc, &ind_subrsc_data, &g_ind_buf));
     g_ind_cnt = _countof(inds);
 
+    const char* font_path2 = "./fonts/Hack-Regular.ttf";
+    state->font_sheet      = create_font_sheet("Hack", font_path2, 64.0f);
+    char* font_glyph_table = write_fontsheet_png(&state->font_sheet);
+
+    // auto font_sheet        = create_font_sheet_all("Hack_all", font_path2, 64.0f);
+    // char* font_glyph_table2 = write_fontsheet_png(&font_sheet);
+    // plat_free(font_sheet.bitmap);
+
+    stbi_set_flip_vertically_on_load(true);
     i32 width, height, n_channels;
-    const char* font_path = "./fonts/liberation-mono.ttf";
-    // stbi_set_flip_vertically_on_load(true);
-    auto ttf_file = load_ttf_glyph(font_path, 64.0f, 'a');
-    if (ttf_file) {
-        D3D11_TEXTURE2D_DESC tex_desc = { .Width      = (u32)ttf_file.width,
-                                          .Height     = (u32)ttf_file.height,
+    byt* data = stbi_load(font_glyph_table, &width, &height, &n_channels, 0);
+    if (data) {
+        D3D11_TEXTURE2D_DESC tex_desc = { .Width      = (u32)width,
+                                          .Height     = (u32)height,
                                           .MipLevels  = 1,
                                           .ArraySize  = 1,
                                           .Format     = DXGI_FORMAT_R8_UNORM,
@@ -111,20 +124,14 @@ function void app_init(AppState* state)
                                           .Usage      = D3D11_USAGE_IMMUTABLE,
                                           .BindFlags  = D3D11_BIND_SHADER_RESOURCE };
 
-        D3D11_SUBRESOURCE_DATA tex_subrsc_data = { .pSysMem          = (void*)ttf_file.bitmap,
-                                                   .SysMemPitch      = ttf_file.width * sizeof(u8),
+        D3D11_SUBRESOURCE_DATA tex_subrsc_data = { .pSysMem          = (void*)data,
+                                                   .SysMemPitch      = width * sizeof(byt),
                                                    .SysMemSlicePitch = 0 };
-
         D3D_CHECK(gfx->device->CreateTexture2D(&tex_desc, &tex_subrsc_data, &g_tex));
-
     } else {
-        printf("ERROR-> Failed to load %s!", font_path);
+        printf("ERROR-> failed to load %s!\n", font_glyph_table);
         TOM_INVALID_CODE_PATH;
     }
-    ttf_file.free();
-
-    const char *font_path2 = "./fonts/Hack-Regular.ttf";
-    state->font_sheet = create_font_sheet(font_path2, 128.0f);
 
     D3D_CHECK(gfx->device->CreateShaderResourceView(g_tex, nullptr, &g_sha_rsc_view));
 
@@ -169,12 +176,14 @@ function void app_update(AppState* state)
     gfx->context->ClearDepthStencilView(gfx->depth_buf_view,
                                         D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
+    g_key_repeat_timer += state->dt;
+
     for (u32 i = 0; i < Keyboard::key_cnt; ++i) {
         auto key = state->input.keyboard.keys[i];
+        if (key.name == Win32Keys::left_shift || key.name == Win32Keys::back ||
+            key.name == Win32Keys::add || key.name == Win32Keys::subtract)
+            continue;
         if (key_pressed(key)) {
-            if (key.name == Win32Keys::left_shift || key.name == Win32Keys::back ||
-                key.name == Win32Keys::add || key.name == Win32Keys::subtract)
-                continue;
             if (key_down(state->input.keyboard.left_shift)) {
                 char c = win32key_to_char_mod(key.name);
                 if (c) g_text_buf[g_text_i++] = c;
@@ -182,34 +191,62 @@ function void app_update(AppState* state)
                 char c = win32key_to_char(key.name);
                 if (c) g_text_buf[g_text_i++] = c;
             }
-
-            if (g_text_i == _countof(g_text_buf)) g_text_i = 0;
         }
+        f32 tc = state->dt * (f32)key.half_transition_cnt;
+        if (tc > state->key_repeat_delay && g_key_repeat_timer > state->key_repeat_speed) {
+            if (key_down(state->input.keyboard.left_shift)) {
+                char c = win32key_to_char_mod(key.name);
+                if (c) g_text_buf[g_text_i++] = c;
+            } else {
+                char c = win32key_to_char(key.name);
+                if (c) g_text_buf[g_text_i++] = c;
+            }
+            g_key_repeat_timer = 0.0f;
+        }
+        if (g_text_i == _countof(g_text_buf)) g_text_i = 0;
     }
 
-    if (key_pressed(state->input.keyboard.back)) {
+    if (key_pressed(state->input.keyboard.back))
         if (g_text_i != 0) --g_text_i;
+
+    f32 tc = state->dt * (f32)state->input.keyboard.back.half_transition_cnt;
+    if (tc > state->key_repeat_delay && g_key_repeat_timer > state->key_repeat_speed) {
+        if (g_text_i != 0) --g_text_i;
+        g_key_repeat_timer = 0.0f;
     }
 
     local constexpr f32 scale_inc = 0.005f;
-    if (key_pressed(state->input.keyboard.add)) {
+    if (key_down(state->input.keyboard.add)) {
         g_text_scale += scale_inc;
-    } else if (key_pressed(state->input.keyboard.subtract)) {
+        g_x_step = g_text_scale / 2.0f;
+        g_y_step = g_text_scale / 1.25f;
+        g_line_len = u32( 2.0f / g_x_step);
+    } else if (key_down(state->input.keyboard.subtract)) {
         g_text_scale -= scale_inc;
+        g_x_step = g_text_scale / 2.0f;
+        g_y_step = g_text_scale / 1.25f;
+        g_line_len = u32( 2.0f / g_x_step);
     }
 
     i32 glyph_ind = 0;
     m4 model      = mat_identity();
     model         = mat_scale(model, g_text_scale);
-    model         = mat_set_translation(model, g_start_pos);
+    // model         = mat_rot_z(model, to_radian(180));
+    model = mat_set_translation(model, g_start_pos);
 
     for (u32 i = 0; i < g_text_i; ++i) {
         glyph_ind           = get_glyph_index(g_text_buf[i]);
-        ConstBuf mapped_buf = { .proj      = state->proj,
-                                .model     = model,
-                                .text_col  = state->text_color,
-                                .uv_off    = {},
-                                .glyph_all = true };
+        ConstBuf mapped_buf = {
+            .proj     = state->proj,
+            .model    = model,
+            .text_col = state->text_color,
+            .tex_sz   = { (f32)state->font_sheet.width, (f32)state->font_sheet.height },
+            .uv_off   = get_uv_offset(&state->font_sheet, glyph_ind),
+            // .uv_off    = {0.0f, (f32)state->font_sheet.height - (f32)state->font_sheet.r},
+            .i_cnt     = { (f32)state->font_sheet.x_cnt, (f32)state->font_sheet.y_cnt },
+            .uv_r      = (f32)state->font_sheet.r,
+            .glyph_all = false
+        };
         D3D11_MAPPED_SUBRESOURCE mapped_resrc;
         D3D_CHECK(gfx->context->Map(g_const_buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resrc));
         memcpy(mapped_resrc.pData, &mapped_buf, sizeof(ConstBuf));

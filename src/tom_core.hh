@@ -6,6 +6,9 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <algorithm>
+#include <type_traits>
+
 #ifndef NOMINMAX
     #define NOMINMAX
 #endif
@@ -144,6 +147,7 @@ inline u32 safe_truncate_u32_to_u64(u64 value)
 #include "tom_math.hh"
 #include "tom_color.hh"
 #include "tom_memory.hh"
+#include "tom_vector.hh"
 #include "tom_string.hh"
 #include "tom_input.hh"
 #include "tom_time.hh"

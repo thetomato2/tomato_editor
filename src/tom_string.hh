@@ -84,18 +84,6 @@ function szt str_len(const CharT* str)
     return res;
 }
 
-// TODO: vectorize this
-template<typename CharT>
-function szt str_len(const wchar* str)
-{
-    const wchar* s;
-    for (s = str; *s; ++s)
-        ;
-    szt res = s - str;
-
-    return res;
-}
-
 template<typename CharT>
 function CharT* str_copy(const CharT* str)
 {
@@ -112,7 +100,7 @@ function CharT* str_copy(const CharT* str)
 template<typename CharT>
 function void str_copy(CharT* buf, const CharT* str)
 {
-    szt len       = str_len(str);
+    szt len = str_len(str);
     // CharT* result = (CharT*)plat_malloc(sizeof(CharT) * (len + 1));
     for (szt i = 0; i < len; ++i) {
         buf[i] = *(str + i);
@@ -133,27 +121,51 @@ function CharT* str_copy(const CharT* str, szt len)
 }
 
 template<typename CharT>
-function CharT* str_copy(CharT* buf1, CharT* buf2)
+function CharT* str_copy(const CharT* buf1, const CharT* buf2)
 {
     szt len1       = str_len(buf1);
     szt len2       = str_len(buf2);
-    CharT* result   = (CharT*)plat_malloc(sizeof(CharT) * (len1 + len2 + 1));
-    CharT* res_ptr  = result;
-    CharT* buf1_ptr = buf1;
-    CharT* buf2_ptr = buf2;
-    while (*buf1_ptr) {
-        *res_ptr++ = *buf1_ptr++;
+    CharT* result  = (CharT*)plat_malloc(sizeof(CharT) * (len1 + len2 + 1));
+    CharT* res_ptr = result;
+    for (szt i = 0; i < len1; ++i) {
+        result[i] = buf1[i];
     }
-    while (*buf2_ptr) {
-        *res_ptr++ = *buf2_ptr++;
+
+    for (szt i = 0; i < len2; ++i) {
+        result[len1 + i] = buf2[i];
     }
-    *res_ptr = '\0';
+    result[len1 + len2] = '\0';
 
     return result;
 }
 
 template<typename CharT>
-function CharT* str_copy(CharT* buf1, CharT* buf2, szt len1, szt len2)
+function CharT* str_copy(const CharT* buf1, const CharT* buf2, const CharT* buf3)
+{
+    szt len1 = str_len(buf1);
+    szt len2 = str_len(buf2);
+    szt len3 = str_len(buf3);
+
+    CharT* result = (CharT*)plat_malloc(sizeof(CharT) * (len1 + len2 + len3 + 1));
+
+    for (szt i = 0; i < len1; ++i) {
+        result[i] = buf1[i];
+    }
+
+    for (szt i = 0; i < len2; ++i) {
+        result[len1 + i] = buf2[i];
+    }
+
+    for (szt i = 0; i < len3; ++i) {
+        result[len1 + len2 + i] = buf3[i];
+    }
+    result[len1 + len2 + len3] = '\0';
+
+    return result;
+}
+
+template<typename CharT>
+function CharT* str_copy(const CharT* buf1, const CharT* buf2, szt len1, szt len2)
 {
     CharT* result   = (CharT*)plat_malloc(sizeof(CharT) * (len1 + len2 + 1));
     CharT* res_ptr  = result;
@@ -188,8 +200,8 @@ function CharT* str_copy(CharT* buf1, CharT c, szt len1)
 template<typename CharT>
 function CharT* str_copy(CharT* buf1, const CharT* str)
 {
-    szt len1       = str_len(buf1);
-    szt len2       = str_len(str);
+    szt len1        = str_len(buf1);
+    szt len2        = str_len(str);
     CharT* result   = (CharT*)plat_malloc(sizeof(CharT) * (len1 + len2 + 1));
     CharT* res_ptr  = result;
     CharT* buf1_ptr = buf1;
@@ -207,7 +219,7 @@ function CharT* str_copy(CharT* buf1, const CharT* str)
 template<typename CharT>
 function CharT* rev_str(const CharT* str)
 {
-    szt len      = str_len(str);
+    szt len       = str_len(str);
     CharT* result = (CharT*)plat_malloc(sizeof(CharT) * (len + 1));
     for (szt i = 0; i < len; ++i) {
         result[i] = *(str + (len - i - 1));
@@ -216,6 +228,5 @@ function CharT* rev_str(const CharT* str)
 
     return result;
 }
-
 
 }  // namespace tom
