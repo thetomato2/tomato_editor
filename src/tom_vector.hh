@@ -134,7 +134,10 @@ public:
 
     void pop_back(size_type n = 1)
     {
-        for (szt i = 0; i < n; ++i) _buf[_size--].~T();
+        for (szt i = 0; i < n; ++i) {
+            if (_size == 0) break;
+            _buf[_size--].~T();
+        }
     }
 
     void reserve(size_type new_capacity)

@@ -96,7 +96,7 @@ function char get_glyph_char(i32 i)
         case 87: return '}';
     }
 
-    return -1;
+    return 0;
 }
 
 // NOTE: HARDCODED!!!
@@ -193,7 +193,7 @@ function i32 get_glyph_index(char c)
         case '}': return 87;
     }
 
-    return -1;
+    return 79;
 }
 
 function ttf_GlyphResult load_ttf_glyph(const char* file_path, f32 point_sz, char glyph)

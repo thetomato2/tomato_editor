@@ -10,7 +10,7 @@
 namespace tom
 {
 
-function char parse_digit(i32 d)
+function char itos(i32 d)
 {
     TOM_ASSERT(d < 10);
 
@@ -228,5 +228,294 @@ function CharT* rev_str(const CharT* str)
 
     return result;
 }
+#if 0
+template<typename CharT>
+function StringBase<CharT> make_string(CharT* buf)
+{
+    StringBase<CharT> result;
+    
+    
+    while (buf) {
+
+    }
+}
+#endif
+
+template<typename CharT>
+struct StringBase
+{
+    const CharT* str;
+    szt len;
+};
+
+typedef StringBase<char> String;
+typedef StringBase<wchar> WString;
+
+template<typename CharT>
+class StringBuilderBase
+{
+    typedef typename std::make_unsigned<CharT>::type UCharT;
+
+public:
+    using value_type      = CharT;
+    using reference       = CharT&;
+    using const_reference = const CharT&;
+    using pointer         = CharT*;
+    using const_pointer   = const CharT*;
+    using iterator        = CharT*;
+    using const_iterator  = const CharT*;
+    using riterator       = std::reverse_iterator<iterator>;
+    using const_riterator = std::reverse_iterator<const_iterator>;
+    using difference_type = std::ptrdiff_t;
+    using size_type       = std::size_t;
+
+    StringBuilderBase() {}
+
+    StringBuilderBase(szt capacity) :
+        _buf(capacity)
+    {
+    }
+
+    ~StringBuilderBase() {}
+
+    StringBuilderBase(const StringBuilderBase& copy) :
+        _buf(copy._buf)
+    {
+    }
+
+    StringBuilderBase& operator=(const StringBuilderBase& copy)
+    {
+        _buf = copy._buf;
+        return *this;
+    }
+
+    StringBuilderBase(StringBuilderBase&& move) noexcept { move.swap(*this); }
+
+    StringBuilderBase& operator=(StringBuilderBase&& move) noexcept
+    {
+        move.swap(*this);
+        return *this;
+    }
+
+    void swap(StringBuilderBase& other) noexcept { std::swap(_buf, other._buf); }
+
+    void push_back(CharT c) { _buf.push_back(c); }
+
+    void push_back(const char* str)
+    {
+        szt len = str_len(str);
+        for (szt i = 0; i < len; ++i) {
+            _buf.push_back(str[i]);
+        }
+    }
+
+    // TODO: memcpy of some sort faster?
+    void push_back(const StringBase<CharT>& str)
+    {
+        for (auto c : str) {
+            _buf.push_back(c);
+        }
+    }
+
+    StringBase<CharT> to_string() const
+    {
+        if (_buf.back() != '\0') _buf.push_back('\0');
+        StringBase<CharT> result { _buf.data(), _buf.size() };
+        return result;
+    }
+
+    void push_back(i64 n)
+    {
+        bool neg = n < 0;
+        if (neg) {
+            n *= -1;
+        }
+
+        Vector<CharT> buf;
+
+        if (n == 0) {
+            buf.push_back('0');
+        } else {
+            while (n > 0) {
+                i64 t = n % 10;
+                buf.push_back(itos(t));
+                n /= 10;
+            }
+
+            if (neg) buf.push_back('-');
+            for (auto rit = buf.rbegin(); rit != buf.rend(); ++rit) {
+                _buf.push_back(*rit);
+            }
+        }
+    }
+
+    void push_back(u64 n)
+    {
+        Vector<CharT> buf;
+
+        if (n == 0) {
+            buf.push_back('0');
+        } else {
+            while (n > 0) {
+                u64 t = n % 10;
+                buf.push_back(itos(t));
+                n /= 10;
+            }
+            for (auto rit = buf.rbegin(); rit != buf.rend(); ++rit) {
+                _buf.push_back(*rit);
+            }
+        }
+    }
+
+    void push_back(i32 n) { push_back((i64)n); }
+    void push_back(i16 n) { push_back((i64)n); }
+    void push_back(i8 n) { push_back((i64)n); }
+
+    void push_back(u32 n) { push_back((u64)n); }
+    void push_back(u16 n) { push_back((u64)n); }
+    void push_back(u8 n) { push_back((u64)n); }
+
+    void pop_back(szt n = 1) { _buf.pop_back(n); }
+    void reserve(szt new_capacity) { _buf.reserve(new_capacity); }
+
+    void clear() { _buf.clear(); }
+
+    reference front() { return _buf.front(); }
+    const_reference front() const { return _buf.front(); }
+    reference back() { return _buf.back(); }
+    const_reference back() const { _buf.back(); }
+
+    iterator begin() { return _buf.begin(); }
+    const_iterator begin() const { return _buf.begin(); }
+    iterator end() { return _buf.end(); }
+    const_iterator end() const { return _buf.end(); }
+
+    riterator rbegin() { return _buf.rend(); }
+    const_riterator rbegin() const { return _buf.rbegin(); }
+    riterator rend() { return _buf.rend(); }
+    const_riterator rend() const { return _buf.rend(); }
+
+    const_iterator cbegin() const { return _buf.cbegin(); }
+    const_riterator crbegin() const { return _buf.crbegin(); }
+    const_iterator cend() const { return _buf.cend(); }
+    const_riterator crend() const { return _buf.crend(); }
+
+    pointer data() { return _buf.data(); }
+    pointer data() const { return _buf.data(); }
+
+    szt size() const { return _buf.size(); }
+    bool empty() const { return _buf.empty(); }
+
+    reference operator[](szt i) { return _buf[i]; }
+    reference const& operator[](szt i) const { return _buf[i]; }
+
+    StringBuilderBase& operator+=(const char rhs)
+    {
+        push_back(rhs);
+        return *this;
+    }
+    StringBuilderBase& operator+=(const char* rhs)
+    {
+        push_back(rhs);
+        return *this;
+    }
+    StringBuilderBase& operator+=(const StringBase<CharT>& rhs)
+    {
+        push_back(rhs);
+        return *this;
+    }
+    StringBuilderBase& operator<<(const char rhs)
+    {
+        push_back(rhs);
+        return *this;
+    }
+    StringBuilderBase& operator<<(const char* rhs)
+    {
+        push_back(rhs);
+        return *this;
+    }
+    StringBuilderBase& operator<<(const StringBase<CharT>& rhs)
+    {
+        push_back(rhs);
+        return *this;
+    }
+
+private:
+    Vector<CharT> _buf;
+};
+
+typedef StringBuilderBase<char> StrBuilder;
+typedef StringBuilderBase<wchar> WStrBuilder;
+
+template<typename CharT>
+StringBase<CharT> operator+(const StringBase<CharT>& lhs, char rhs)
+{
+    StringBuilderBase<CharT> result { lhs };
+    result.push_back(rhs);
+    return result.to_string();
+}
+
+template<typename CharT>
+StringBase<CharT> operator+(const StringBase<CharT>& lhs, const char* rhs)
+{
+    StringBuilderBase<CharT> result;
+    result.push_back(lhs);
+    result.push_back(rhs);
+    return result.to_string();
+}
+
+template<typename CharT>
+StringBase<CharT> operator+(const StringBase<CharT>& lhs, StringBase<CharT>& rhs)
+{
+    StringBuilderBase<CharT> result;
+    result.push_back(lhs);
+    result.push_back(rhs);
+    return result.to_string();
+}
+#if 0
+function String convert_wstring_to_string(const WString& wstr)
+{
+    i32 cnt   = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);
+    char* buf = new char[cnt];
+    WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, buf, cnt, NULL, NULL);
+    String result { buf };
+    delete buf;
+
+    return result;
+}
+
+function WString convert_string_to_wstring(const String& str)
+{
+    i32 cnt    = MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, NULL, 0);
+    wchar* buf = new wchar[cnt];
+    MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, buf, cnt);
+    WString result { buf };
+    delete buf;
+
+    return result;
+}
+
+function String convert_wstring_to_string_utf8(const WString& wstr)
+{
+    i32 cnt   = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);
+    char* buf = new char[cnt];
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, buf, cnt, NULL, NULL);
+    String result { buf };
+    delete buf;
+
+    return result;
+}
+
+function WString convert_string_to_wstring_utf8(const String& str)
+{
+    i32 cnt    = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0);
+    wchar* buf = new wchar[cnt];
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, buf, cnt);
+    WString result { buf };
+    delete buf;
+
+    return result;
+}
+#endif
 
 }  // namespace tom

@@ -8,7 +8,7 @@ global f64 g_mouse_y;
 global f64 g_scroll_x_off;
 global f64 g_scroll_y_off;
 
-enum Win32Keys : byt
+enum Win32Key : byt
 {
     none           = 0,
     back           = 0x8,
@@ -149,7 +149,7 @@ struct Button
 
 struct Key : public Button
 {
-    Win32Keys name;
+    Win32Key name;
 };
 
 struct Mouse
@@ -175,12 +175,11 @@ struct Mouse
 
 struct Keyboard
 {
-    global constexpr szt key_cnt = 55;
+    global constexpr szt key_cnt = 72;
 
     union
     {
         Key keys[key_cnt];
-
         struct
         {
             Key space;
@@ -239,6 +238,23 @@ struct Keyboard
             Key backslash;
             Key question;
             Key pipe;
+            Key left;
+            Key up;
+            Key right;
+            Key down;
+            Key f0;
+            Key f1;
+            Key f2;
+            Key f3;
+            Key f4;
+            Key f5;
+            Key f6;
+            Key f7;
+            Key f8;
+            Key f9;
+            Key f10;
+            Key f11;
+            Key f12;
         };
     };
 };
@@ -310,18 +326,5 @@ inline bool key_up(const Button k)
 {
     return k.half_transition_cnt > 0 && k.ended_down == 0;
 }
-
-#if 0
-function char key_to_char(Button k)
-{
-    switch (k) {
-        case d1: return '1';
-
-        default: break;
-    }
-
-    return '\0';
-}
-#endif
 
 }  // namespace tom

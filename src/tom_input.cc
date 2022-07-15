@@ -52,7 +52,7 @@ function void process_Xinput_digital_button(DWORD Xinput_button_state_, Button& 
 }
 
 // NOTE: mod = Shift
-function char win32key_to_char_mod(Win32Keys key)
+function char win32key_to_char_mod(Win32Key key)
 {
     switch (key) {
         case space: return ' ';
@@ -93,6 +93,7 @@ function char win32key_to_char_mod(Win32Keys key)
         case y: return 'Y';
         case z: return 'Z';
         case add: return '=';
+        case enter: return '\n';
         case subtract: return '_';
         case semicolon: return ':';
         case comma: return '>';
@@ -108,7 +109,7 @@ function char win32key_to_char_mod(Win32Keys key)
     return '\0';
 }
 
-function char win32key_to_char(Win32Keys key)
+function char win32key_to_char(Win32Key key)
 {
     switch (key) {
         case space: return ' ';
@@ -149,6 +150,7 @@ function char win32key_to_char(Win32Keys key)
         case y: return 'y';
         case z: return 'z';
         case add: return '+';
+        case enter: return '\n';
         case subtract: return '-';
         case semicolon: return ';';
         case comma: return ',';
@@ -164,7 +166,7 @@ function char win32key_to_char(Win32Keys key)
     return '\0';
 }
 
-#define ASSIGN_WIN32_KEY(key) result.keyboard.##key.name = Win32Keys::##key;
+#define ASSIGN_WIN32_KEY(key) result.keyboard.##key.name = Win32Key::##key;
 
 function Input init_input()
 {
@@ -226,6 +228,22 @@ function Input init_input()
     ASSIGN_WIN32_KEY(backslash);
     ASSIGN_WIN32_KEY(question);
     ASSIGN_WIN32_KEY(pipe);
+    ASSIGN_WIN32_KEY(left);
+    ASSIGN_WIN32_KEY(up);
+    ASSIGN_WIN32_KEY(right);
+    ASSIGN_WIN32_KEY(down);
+    ASSIGN_WIN32_KEY(f1);
+    ASSIGN_WIN32_KEY(f2);
+    ASSIGN_WIN32_KEY(f3);
+    ASSIGN_WIN32_KEY(f4);
+    ASSIGN_WIN32_KEY(f5);
+    ASSIGN_WIN32_KEY(f6);
+    ASSIGN_WIN32_KEY(f7);
+    ASSIGN_WIN32_KEY(f8);
+    ASSIGN_WIN32_KEY(f9);
+    ASSIGN_WIN32_KEY(f10);
+    ASSIGN_WIN32_KEY(f11);
+    ASSIGN_WIN32_KEY(f12);
 
     return result;
 }

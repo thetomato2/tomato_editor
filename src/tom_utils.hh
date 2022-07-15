@@ -1,8 +1,20 @@
 
-#include "core.hh"
-
 namespace tom
 {
+
+template<typename T>
+struct reverse
+{
+    explicit reverse(T& it) :
+        _it(it)
+    {
+    }
+    auto begin() const { return std::rbegin(_it); }
+    auto end() const { return std::rend(_it); }
+
+private:
+    T& _it;
+};
 
 template<typename First, typename Second>
 struct Pair

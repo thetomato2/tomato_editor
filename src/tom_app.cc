@@ -18,16 +18,24 @@ global ID3D11Texture2D* g_tex;
 global ID3D11ShaderResourceView* g_sha_rsc_view;
 global szt g_ind_cnt;
 
-global f32 g_text_scale = 0.075f;
-global v3 g_start_pos   = { -1.0f, 0.52f, 0.0f };
-global f32 g_x_step     = 0.035f;
-global f32 g_y_step     = 0.06f;
-global u32 g_line_len   = 58;
+global v3 g_start_pos = { -1.0f, 0.52f, 0.0f };
 
-global char g_text_buf[2048]  = {};
+struct TextAtrribs
+{
+    f32 scale;
+    f32 x_step;
+    f32 y_step;
+    u32 line_len;
+};
+
+TextAtrribs g_text_attribs;
+global constexpr f32 g_scale_inc = 0.002f;
+
+// global char g_text_buf[2048]  = {};
+global Vector<char> g_text_buf(512);
 global u32 g_text_i           = 0;
 global f32 g_key_repeat_timer = 0.0f;
-
+global Vector<Win32Key> g_skip_keys;
 struct ConstBuf
 {
     m4 proj;
@@ -39,6 +47,17 @@ struct ConstBuf
     f32 uv_r;
     i32 glyph_all;
 };
+
+function TextAtrribs set_text_attribs_from_scale(f32 scale)
+{
+    TextAtrribs result;
+    result.scale    = scale;
+    result.x_step   = result.scale / 2.0f;
+    result.y_step   = result.scale / 1.25f;
+    result.line_len = u32(2.0f / result.x_step);
+
+    return result;
+}
 
 function void on_resize(AppState* state)
 {
@@ -103,9 +122,15 @@ function void app_init(AppState* state)
     D3D_CHECK(gfx->device->CreateBuffer(&ind_buf_desc, &ind_subrsc_data, &g_ind_buf));
     g_ind_cnt = _countof(inds);
 
+#define BUILD_FONT_TABLE 1
+
+#if BUILD_FONT_TABLE
     const char* font_path2 = "./fonts/Hack-Regular.ttf";
     state->font_sheet      = create_font_sheet("Hack", font_path2, 64.0f);
     char* font_glyph_table = write_fontsheet_png(&state->font_sheet);
+#else
+    const char* font_glyph_table = "./out/Hack_glyph_table.png";
+#endif
 
     // auto font_sheet        = create_font_sheet_all("Hack_all", font_path2, 64.0f);
     // char* font_glyph_table2 = write_fontsheet_png(&font_sheet);
@@ -142,11 +167,35 @@ function void app_init(AppState* state)
                                          .BindFlags      = D3D11_BIND_CONSTANT_BUFFER,
                                          .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE };
     D3D_CHECK(gfx->device->CreateBuffer(&const_buf_desc, 0, &g_const_buf));
+
+    g_text_attribs = set_text_attribs_from_scale(0.035f);
+
+    g_skip_keys.emplace_back(Win32Key::left_shift);
+    g_skip_keys.emplace_back(Win32Key::back);
+    g_skip_keys.emplace_back(Win32Key::add);
+    g_skip_keys.emplace_back(Win32Key::subtract);
+    g_skip_keys.emplace_back(Win32Key::left);
+    g_skip_keys.emplace_back(Win32Key::up);
+    g_skip_keys.emplace_back(Win32Key::right);
+    g_skip_keys.emplace_back(Win32Key::down);
+    g_skip_keys.emplace_back(Win32Key::f1);
+    g_skip_keys.emplace_back(Win32Key::f2);
+    g_skip_keys.emplace_back(Win32Key::f3);
+    g_skip_keys.emplace_back(Win32Key::f4);
+    g_skip_keys.emplace_back(Win32Key::f5);
+    g_skip_keys.emplace_back(Win32Key::f6);
+    g_skip_keys.emplace_back(Win32Key::f7);
+    g_skip_keys.emplace_back(Win32Key::f8);
+    g_skip_keys.emplace_back(Win32Key::f9);
+    g_skip_keys.emplace_back(Win32Key::f10);
+    g_skip_keys.emplace_back(Win32Key::f11);
+    g_skip_keys.emplace_back(Win32Key::f12);
 }
 
 function void app_update(AppState* state)
 {
     auto gfx             = &state->gfx;
+    auto kb              = &state->input.keyboard;
     local u32 stride     = sizeof(Vertex);
     local u32 offset     = 0;
     local bool once_only = false;
@@ -179,65 +228,94 @@ function void app_update(AppState* state)
     g_key_repeat_timer += state->dt;
 
     for (u32 i = 0; i < Keyboard::key_cnt; ++i) {
-        auto key = state->input.keyboard.keys[i];
-        if (key.name == Win32Keys::left_shift || key.name == Win32Keys::back ||
-            key.name == Win32Keys::add || key.name == Win32Keys::subtract)
-            continue;
-        if (key_pressed(key)) {
-            if (key_down(state->input.keyboard.left_shift)) {
-                char c = win32key_to_char_mod(key.name);
-                if (c) g_text_buf[g_text_i++] = c;
-            } else {
-                char c = win32key_to_char(key.name);
-                if (c) g_text_buf[g_text_i++] = c;
-            }
+        auto key = kb->keys[i];
+
+        for (auto k : g_skip_keys) {
+            if (key.name == k) continue;
         }
+
+        if (key_pressed(key)) {
+            char c = '\0';
+            if (key_down(kb->left_shift)) {
+                c = win32key_to_char_mod(key.name);
+            } else {
+                c = win32key_to_char(key.name);
+            }
+            if (c) g_text_buf.push_back(c);
+        }
+
         f32 tc = state->dt * (f32)key.half_transition_cnt;
         if (tc > state->key_repeat_delay && g_key_repeat_timer > state->key_repeat_speed) {
-            if (key_down(state->input.keyboard.left_shift)) {
-                char c = win32key_to_char_mod(key.name);
-                if (c) g_text_buf[g_text_i++] = c;
+            char c = '\0';
+            if (key_down(kb->left_shift)) {
+                c = win32key_to_char_mod(key.name);
             } else {
-                char c = win32key_to_char(key.name);
-                if (c) g_text_buf[g_text_i++] = c;
+                c = win32key_to_char(key.name);
             }
+            if (c) g_text_buf.push_back(c);
             g_key_repeat_timer = 0.0f;
         }
-        if (g_text_i == _countof(g_text_buf)) g_text_i = 0;
     }
 
-    if (key_pressed(state->input.keyboard.back))
-        if (g_text_i != 0) --g_text_i;
+    if (key_pressed(kb->back)) g_text_buf.pop_back();
+
+    if (key_pressed(kb->f1)) {
+        auto file_result = read_file("./data/alice29.txt");
+        char* ptr        = (char*)file_result.contents;
+        // for (szt i = 0; i < file_result.size; ++i) {
+        for (szt i = 0; i < 10000; ++i) {
+            g_text_buf.push_back(ptr[i]);
+        }
+    }
 
     f32 tc = state->dt * (f32)state->input.keyboard.back.half_transition_cnt;
     if (tc > state->key_repeat_delay && g_key_repeat_timer > state->key_repeat_speed) {
-        if (g_text_i != 0) --g_text_i;
+        g_text_buf.pop_back();
         g_key_repeat_timer = 0.0f;
     }
 
-    local constexpr f32 scale_inc = 0.005f;
-    if (key_down(state->input.keyboard.add)) {
-        g_text_scale += scale_inc;
-        g_x_step = g_text_scale / 2.0f;
-        g_y_step = g_text_scale / 1.25f;
-        g_line_len = u32( 2.0f / g_x_step);
-    } else if (key_down(state->input.keyboard.subtract)) {
-        g_text_scale -= scale_inc;
-        g_x_step = g_text_scale / 2.0f;
-        g_y_step = g_text_scale / 1.25f;
-        g_line_len = u32( 2.0f / g_x_step);
+    if (key_down(kb->add)) {
+        g_text_attribs = set_text_attribs_from_scale(g_text_attribs.scale + g_scale_inc);
+    } else if (key_down(kb->subtract)) {
+        g_text_attribs = set_text_attribs_from_scale(g_text_attribs.scale - g_scale_inc);
     }
 
     i32 glyph_ind = 0;
     m4 model      = mat_identity();
-    model         = mat_scale(model, g_text_scale);
+    model         = mat_scale(model, g_text_attribs.scale);
     // model         = mat_rot_z(model, to_radian(180));
     model = mat_set_translation(model, g_start_pos);
 
-    for (u32 i = 0; i < g_text_i; ++i) {
-        glyph_ind           = get_glyph_index(g_text_buf[i]);
+    if (key_down(kb->f2)) state->view = mat_identity();
+
+    if (key_down(kb->up)) {
+        if (key_down(kb->left_shift))
+            state->view = mat_rot_x(state->view, -0.01f);
+        else
+            state->view = mat_translate_y(state->view, -0.01f);
+    } else if (key_down(kb->down)) {
+        if (key_down(kb->left_shift))
+            state->view = mat_rot_x(state->view, 0.01f);
+        else
+            state->view = mat_translate_y(state->view, 0.01f);
+    }
+
+    if (key_down(kb->left))
+        state->view = mat_translate_x(state->view, 0.01f);
+    else if (key_down(kb->right))
+        state->view = mat_translate_x(state->view, -0.01f);
+
+    state->wvp = state->view * state->proj;
+
+    for (auto c : g_text_buf) {
+        glyph_ind = get_glyph_index(c);
+        if (c == '\n') {
+            model = mat_set_translation_x(model, g_start_pos.x);
+            model = mat_translate_y(model, -g_text_attribs.y_step);
+            continue;
+        }
         ConstBuf mapped_buf = {
-            .proj     = state->proj,
+            .proj     = state->wvp,
             .model    = model,
             .text_col = state->text_color,
             .tex_sz   = { (f32)state->font_sheet.width, (f32)state->font_sheet.height },
@@ -254,10 +332,10 @@ function void app_update(AppState* state)
 
         gfx->context->DrawIndexed(g_ind_cnt, 0, 0);
 
-        model = mat_translate_x(model, g_x_step);
-        if ((i + 1) % g_line_len == 0) {
+        model = mat_translate_x(model, g_text_attribs.x_step);
+        if ((i + 1) % g_text_attribs.line_len == 0) {
             model = mat_set_translation_x(model, g_start_pos.x);
-            model = mat_translate_y(model, -g_y_step);
+            model = mat_translate_y(model, -g_text_attribs.y_step);
         }
     }
 
@@ -342,11 +420,11 @@ function i32 app_start(HINSTANCE hinst)
 #ifdef TOM_INTERNAL
     LPVOID base_address = (LPVOID)TERABYTES((u64)2);
 #else
-    LPVOID base_address = 0;
+    LPVOID base_address          = 0;
 #endif
 
     state.memory.permanent_storage_size = MEGABYTES(256);
-    state.memory.transient_storage_size = GIGABYTES(1);
+    state.memory.transient_storage_size = GIGABYTES(256);
     state.total_size = state.memory.permanent_storage_size + state.memory.transient_storage_size;
     // TODO: use large pages
     state.memory_block =
