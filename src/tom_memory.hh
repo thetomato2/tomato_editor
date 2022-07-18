@@ -16,7 +16,7 @@ inline void init_arena(Arena* arena, const szt size, void* base)
 
 inline void* push_size(Arena* arena, szt size)
 {
-    TOM_ASSERT((arena->used + size) <= arena->size);
+    Assert((arena->used + size) <= arena->size);
     void* result = arena->base + arena->used;
     arena->used += size;
 

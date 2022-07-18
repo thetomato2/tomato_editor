@@ -5,7 +5,7 @@ namespace tom
 global bool g_running = true;
 global bool g_pause   = false;
 global bool g_resize  = false;
-WindowDims g_win_dim  = {};
+r2i g_win_dim         = {};
 i32 g_ms_scroll       = {};
 
 function void toggle_fullscreen(Win32State* state)
@@ -30,14 +30,14 @@ function void toggle_fullscreen(Win32State* state)
     }
 }
 
-function WindowDims get_window_dimensions(HWND hwnd)
+function r2i get_window_dimensions(HWND hwnd)
 {
+    r2i result;
     RECT client_rect;
-    WindowDims win_dim;
     GetClientRect(hwnd, &client_rect);
-    win_dim.width  = client_rect.right - client_rect.left;
-    win_dim.height = client_rect.bottom - client_rect.top;
-    return win_dim;
+    result.x1 = client_rect.right - client_rect.left;
+    result.y1 = client_rect.bottom - client_rect.top;
+    return result;
 }
 
 function void get_cwd(char* buf)
@@ -152,7 +152,7 @@ function  void rm_rf_dir(const wstring& path)
 function void create_console()
 {
     bool is_initialized = AllocConsole();
-    TOM_ASSERT(is_initialized);
+    Assert(is_initialized);
 
     if (is_initialized) {
         FILE* fDummy;
@@ -177,7 +177,7 @@ function void process_pending_messages(Win32State* state)
     state->running   = g_running;
     state->pause     = g_pause;
     state->resize    = g_resize;
-    g_resize = false;
+    g_resize         = false;
     state->win_dims  = g_win_dim;
     state->ms_scroll = g_ms_scroll;
     g_ms_scroll      = 0;
@@ -269,6 +269,24 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     return result;
 }
 
+typedef BOOL WINAPI SetProcessDpiAware(void);
+typedef BOOL WINAPI SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT);
+function void prevent_windows_DPI_scaling()
+{
+    HMODULE WinUser = LoadLibraryW(L"user32.dll");
+    SetProcessDpiAwarenessContext* dpi_context =
+        (SetProcessDpiAwarenessContext*)GetProcAddress(WinUser, "SetProcessDPIAwarenessContext");
+    if (dpi_context) {
+        dpi_context(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+    } else {
+        SetProcessDpiAware* dpi_aware =
+            (SetProcessDpiAware*)GetProcAddress(WinUser, "SetProcessDPIAware");
+        if (dpi_aware) {
+            dpi_aware();
+        }
+    }
+}
+
 function void create_window(Win32State* state)
 {
     state->cls_name = _T("TomatoWinCls");
@@ -282,30 +300,37 @@ function void create_window(Win32State* state)
 
     if (!RegisterClass(&cls)) {
         printf("ERROR--> Failed to register window class!\n");
-        TOM_ASSERT(false);
+        Assert(false);
         return;
     }
+
+    // NOTE(casey): Martins says WS_EX_NOREDIRECTIONBITMAP is necessary to make
+    // DXGI_SWAP_EFFECT_FLIP_DISCARD "not glitch on window resizing", and since
+    // I don't normally program DirectX and have no idea, we're just going to
+    // leave it here :)
+    DWORD ex_style = WS_EX_APPWINDOW | WS_EX_NOREDIRECTIONBITMAP;
+    // DWORD ex_style = WS_EX_APPWINDOW;
 
     DWORD dw_style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
     // DWORD dw_style = WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU;
 
     RECT wr = { .left   = 0,
                 .top    = 0,
-                .right  = state->win_dims.width + wr.left,
-                .bottom = state->win_dims.height + wr.top };
+                .right  = state->win_dims.x1 + wr.left,
+                .bottom = state->win_dims.y1 + wr.top };
 
     if (AdjustWindowRect(&wr, dw_style, false) == 0) {
         printf("ERROR--> Failed to adjust window rect");
-        TOM_ASSERT(false);
+        Assert(false);
     }
 
-    state->hwnd = CreateWindowEx(0, cls.lpszClassName, _T("TomatoGame"), dw_style, CW_USEDEFAULT,
-                                 CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL,
-                                 state->hinst, NULL);
+    state->hwnd = CreateWindowEx(ex_style, cls.lpszClassName, _T("Tomato Editor"), dw_style,
+                                 CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left,
+                                 wr.bottom - wr.top, NULL, NULL, state->hinst, NULL);
 
     if (!state->hwnd) {
         printf("Failed to create window!\n");
-        TOM_ASSERT(state->hwnd);
+        Assert(state->hwnd);
         return;
     }
 

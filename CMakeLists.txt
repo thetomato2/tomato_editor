@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS OFF)
-set(CMAKE_UNITY_BUILD ON)
+set(CMAKE_UNITY_BUILD OFF)
 
 
 # Note: by default ENABLE_DEVELOPER_MODE is True
@@ -79,6 +79,7 @@ list(APPEND COMMON_LINKER_LIBS
     Ole32.lib
     d3d11.lib
     d3dcompiler.lib
+    dxguid.lib
     )
 
 file(GLOB SHADERS
@@ -130,10 +131,10 @@ add_custom_command(TARGET tomato_editor
 
 add_custom_command(
     TARGET tomato_editor POST_BUILD
+    COMMAND ctime -end ${CMAKE_CURRENT_LIST_DIR}/data/tomato_editor.ctm
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${SHADER_DIR} $<TARGET_FILE_DIR:tomato_editor>/shaders DEPENDS ${SHADERS}
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${DATA_DIR} $<TARGET_FILE_DIR:tomato_editor>/data DEPENDS ${DATA}
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${FONT_DIR} $<TARGET_FILE_DIR:tomato_editor>/fonts DEPENDS ${FONTS}
-    COMMAND ctime -end ${CMAKE_CURRENT_LIST_DIR}/data/tomato_editor.ctm
     COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_LIST_DIR}/build_times.txt
     COMMAND ctime -csv ${CMAKE_CURRENT_LIST_DIR}/data/tomato_editor.ctm >> ${CMAKE_CURRENT_LIST_DIR}/build_times.txt
 )

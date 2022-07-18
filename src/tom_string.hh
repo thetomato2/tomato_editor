@@ -12,7 +12,7 @@ namespace tom
 
 function char itos(i32 d)
 {
-    TOM_ASSERT(d < 10);
+    Assert(d < 10);
 
     switch (d) {
         case 0: return '0';
@@ -228,19 +228,8 @@ function CharT* rev_str(const CharT* str)
 
     return result;
 }
+
 #if 0
-template<typename CharT>
-function StringBase<CharT> make_string(CharT* buf)
-{
-    StringBase<CharT> result;
-    
-    
-    while (buf) {
-
-    }
-}
-#endif
-
 template<typename CharT>
 struct StringBase
 {
@@ -472,7 +461,6 @@ StringBase<CharT> operator+(const StringBase<CharT>& lhs, StringBase<CharT>& rhs
     result.push_back(rhs);
     return result.to_string();
 }
-#if 0
 function String convert_wstring_to_string(const WString& wstr)
 {
     i32 cnt   = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);

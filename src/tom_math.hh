@@ -72,8 +72,8 @@ inline bool equals_f32(f32 a, f32 b)
 
 inline void scalar_sin_cos(f32* p_sin, f32* p_cos, f32 val)
 {
-    TOM_ASSERT(p_sin);
-    TOM_ASSERT(p_cos);
+    Assert(p_sin);
+    Assert(p_cos);
     f32 quo = xm_1div2pi * val;
 
     if (val >= 0.0f)
@@ -159,7 +159,7 @@ T min(T a, T b)
 template<typename T>
 inline f32 normalize_coord(T min, T max, T a)
 {
-    TOM_ASSERT(a >= min && a <= max);
+    Assert(a >= min && a <= max);
     return ((f32)a - f32(min)) / ((f32)max - (f32)min);
 }
 
@@ -167,9 +167,10 @@ inline f32 normalize_coord(T min, T max, T a)
 // #VECTOR 2
 // ===============================================================================================
 
-inline v2 v2_init(f32 a)
+template<typename T>
+inline v2<T> v2_init(T a)
 {
-    v2 res;
+    v2<T> res;
 
     res.x = a;
     res.y = a;
@@ -177,9 +178,10 @@ inline v2 v2_init(f32 a)
     return res;
 }
 
-inline v2 v2_init(f32 x, f32 y)
+template<typename T>
+inline v2<T> v2_init(T x, T y)
 {
-    v2 res;
+    v2<T> res;
 
     res.x = x;
     res.y = y;
@@ -187,29 +189,10 @@ inline v2 v2_init(f32 x, f32 y)
     return res;
 }
 
-inline v2 v3_init(i32 x, i32 y)
+template<typename T>
+inline v2<T> operator+(v2<T> lhs, v2<T> rhs)
 {
-    v2 res;
-
-    res.x = (f32)x;
-    res.y = (f32)y;
-
-    return res;
-}
-
-inline v2 v2_init(u32 x, u32 y)
-{
-    v2 res;
-
-    res.x = (f32)x;
-    res.y = (f32)y;
-
-    return res;
-}
-
-inline v2 operator+(v2 lhs, v2 rhs)
-{
-    v2 res;
+    v2<T> res;
 
     res.x = lhs.x + rhs.x;
     res.y = lhs.y + rhs.y;
@@ -217,9 +200,10 @@ inline v2 operator+(v2 lhs, v2 rhs)
     return res;
 }
 
-inline v2 operator+(v2 lhs, f32 rhs)
+template<typename T>
+inline v2<T> operator+(v2<T> lhs, T rhs)
 {
-    v2 res;
+    v2<T> res;
 
     res.x = lhs.x + rhs;
     res.y = lhs.y + rhs;
@@ -227,14 +211,16 @@ inline v2 operator+(v2 lhs, f32 rhs)
     return res;
 }
 
-inline v2& operator+=(v2& lhs, v2 rhs)
+template<typename T>
+inline v2<T>& operator+=(v2<T>& lhs, v2<T> rhs)
 {
     lhs = lhs + rhs;
 
     return lhs;
 }
 
-inline v2& operator+=(v2& lhs, f32 rhs)
+template<typename T>
+inline v2<T>& operator+=(v2<T>& lhs, T rhs)
 {
     lhs.x += rhs;
     lhs.y += rhs;
@@ -242,18 +228,21 @@ inline v2& operator+=(v2& lhs, f32 rhs)
     return lhs;
 }
 
-inline v2 operator-(v2 lhs)
+template<typename T>
+inline v2<T> operator-(v2<T> lhs)
 {
-    v2 res;
+    v2<T> res;
 
     res.x = -lhs.x;
     res.y = -lhs.y;
 
     return res;
 }
-inline v2 operator-(v2 lhs, v2 rhs)
+
+template<typename T>
+inline v2<T> operator-(v2<T> lhs, v2<T> rhs)
 {
-    v2 res;
+    v2<T> res;
 
     res.x = lhs.x - rhs.x;
     res.y = lhs.y - rhs.y;
@@ -261,9 +250,10 @@ inline v2 operator-(v2 lhs, v2 rhs)
     return res;
 }
 
-inline v2 operator-(v2 lhs, f32 rhs)
+template<typename T>
+inline v2<T> operator-(v2<T> lhs, T rhs)
 {
-    v2 res;
+    v2<T> res;
 
     res.x = lhs.x - rhs;
     res.y = lhs.y - rhs;
@@ -271,23 +261,26 @@ inline v2 operator-(v2 lhs, f32 rhs)
     return res;
 }
 
-inline v2& operator-=(v2& lhs, v2 rhs)
+template<typename T>
+inline v2<T>& operator-=(v2<T>& lhs, v2<T> rhs)
 {
     lhs = lhs - rhs;
 
     return lhs;
 }
 
-inline v2& operator-=(v2& lhs, f32 rhs)
+template<typename T>
+inline v2<T>& operator-=(v2<T>& lhs, T rhs)
 {
     lhs = lhs - rhs;
 
     return lhs;
 }
 
-inline v2 operator*(f32 lhs, v2 rhs)
+template<typename T>
+inline v2<T> operator*(T lhs, v2<T> rhs)
 {
-    v2 res;
+    v2<T> res;
 
     res.x = lhs * rhs.x;
     res.y = lhs * rhs.y;
@@ -295,9 +288,10 @@ inline v2 operator*(f32 lhs, v2 rhs)
     return res;
 }
 
-inline v2 operator*(v2 lhs, f32 rhs)
+template<typename T>
+inline v2<T> operator*(v2<T> lhs, T rhs)
 {
-    v2 res;
+    v2<T> res;
 
     res.x = lhs.x * rhs;
     res.y = lhs.y * rhs;
@@ -305,7 +299,8 @@ inline v2 operator*(v2 lhs, f32 rhs)
     return res;
 }
 
-inline v2& operator*=(v2& lhs, f32 rhs)
+template<typename T>
+inline v2<T>& operator*=(v2<T>& lhs, T rhs)
 {
     lhs.x *= rhs;
     lhs.y *= rhs;
@@ -313,9 +308,10 @@ inline v2& operator*=(v2& lhs, f32 rhs)
     return lhs;
 }
 
-inline v2 operator/(v2 lhs, f32 rhs)
+template<typename T>
+inline v2<T> operator/(v2<T> lhs, T rhs)
 {
-    v2 res;
+    v2<T> res;
 
     res.x = lhs.x / rhs;
     res.y = lhs.y / rhs;
@@ -323,7 +319,8 @@ inline v2 operator/(v2 lhs, f32 rhs)
     return res;
 }
 
-inline v2& operator/=(v2& lhs, f32 rhs)
+template<typename T>
+inline v2<T>& operator/=(v2<T>& lhs, T rhs)
 {
     lhs.x /= rhs;
     lhs.y /= rhs;
@@ -331,12 +328,14 @@ inline v2& operator/=(v2& lhs, f32 rhs)
     return lhs;
 }
 
-inline bool operator==(v2& lhs, v2& rhs)
+template<typename T>
+inline bool operator==(v2<T>& lhs, v2<T>& rhs)
 {
     return lhs.x == rhs.x && lhs.y == rhs.y;
 }
 
-inline bool operator!=(v2& lhs, v2& rhs)
+template<typename T>
+inline bool operator!=(v2<T>& lhs, v2<T>& rhs)
 {
     return !(lhs == rhs);
 }
@@ -345,9 +344,10 @@ inline bool operator!=(v2& lhs, v2& rhs)
 // #VECTOR 3
 // ===============================================================================================
 
-inline v3 v3_init(f32 a)
+template<typename T>
+inline v3<T> v3_init(T a)
 {
-    v3 res;
+    v3f res;
 
     res.x = a;
     res.y = a;
@@ -356,9 +356,10 @@ inline v3 v3_init(f32 a)
     return res;
 }
 
-inline v3 v3_init(f32 x, f32 y, f32 z)
+template<typename T>
+inline v3<T> v3_init(T x, T y, T z)
 {
-    v3 res;
+    v3<T> res;
 
     res.x = x;
     res.y = y;
@@ -367,31 +368,10 @@ inline v3 v3_init(f32 x, f32 y, f32 z)
     return res;
 }
 
-inline v3 v3_init(i32 x, i32 y, i32 z)
+template<typename T>
+inline v3<T> v3_init(v2<T> a, T z = 0.0f)
 {
-    v3 res;
-
-    res.x = (f32)x;
-    res.y = (f32)y;
-    res.z = (f32)z;
-
-    return res;
-}
-
-inline v3 v3_init(u32 x, u32 y, u32 z)
-{
-    v3 res;
-
-    res.x = (f32)x;
-    res.y = (f32)y;
-    res.z = (f32)z;
-
-    return res;
-}
-
-inline v3 v3_init(v2 a, f32 z = 0.0f)
-{
-    v3 res;
+    v3<T> res;
 
     res.x = a.x;
     res.y = a.y;
@@ -400,14 +380,16 @@ inline v3 v3_init(v2 a, f32 z = 0.0f)
     return res;
 }
 
-inline v3 v3_zero()
+template<typename T>
+inline v3<T> v3_zero()
 {
     return {};
 }
 
-inline v3 operator+(v3 lhs, v3 rhs)
+template<typename T>
+inline v3<T> operator+(v3<T> lhs, v3<T> rhs)
 {
-    v3 res;
+    v3<T> res;
 
     res.x = lhs.x + rhs.x;
     res.y = lhs.y + rhs.y;
@@ -416,9 +398,10 @@ inline v3 operator+(v3 lhs, v3 rhs)
     return res;
 }
 
-inline v3 operator+(v3 lhs, f32 rhs)
+template<typename T>
+inline v3<T> operator+(v3<T> lhs, T rhs)
 {
-    v3 res;
+    v3<T> res;
 
     res.x = lhs.x + rhs;
     res.y = lhs.y + rhs;
@@ -427,23 +410,26 @@ inline v3 operator+(v3 lhs, f32 rhs)
     return res;
 }
 
-inline v3& operator+=(v3& lhs, v3 rhs)
+template<typename T>
+inline v3<T>& operator+=(v3<T>& lhs, v3<T> rhs)
 {
     lhs = lhs + rhs;
 
     return lhs;
 }
 
-inline v3& operator+=(v3& lhs, f32 rhs)
+template<typename T>
+inline v3<T>& operator+=(v3<T>& lhs, T rhs)
 {
     lhs = lhs + rhs;
 
     return lhs;
 }
 
-inline v3 operator-(v3 lhs)
+template<typename T>
+inline v3<T> operator-(v3<T> lhs)
 {
-    v3 res;
+    v3<T> res;
 
     res.x = -lhs.x;
     res.y = -lhs.y;
@@ -451,9 +437,10 @@ inline v3 operator-(v3 lhs)
 
     return res;
 }
-inline v3 operator-(v3 lhs, v3 rhs)
+template<typename T>
+inline v3<T> operator-(v3<T> lhs, v3<T> rhs)
 {
-    v3 res;
+    v3<T> res;
 
     res.x = lhs.x - rhs.x;
     res.y = lhs.y - rhs.y;
@@ -462,9 +449,10 @@ inline v3 operator-(v3 lhs, v3 rhs)
     return res;
 }
 
-inline v3 operator-(v3 lhs, f32 rhs)
+template<typename T>
+inline v3<T> operator-(v3<T> lhs, T rhs)
 {
-    v3 res;
+    v3<T> res;
 
     res.x = lhs.x - rhs;
     res.y = lhs.y - rhs;
@@ -473,23 +461,26 @@ inline v3 operator-(v3 lhs, f32 rhs)
     return res;
 }
 
-inline v3& operator-=(v3& lhs, v3 rhs)
+template<typename T>
+inline v3<T>& operator-=(v3<T>& lhs, v3<T> rhs)
 {
     lhs = lhs - rhs;
 
     return lhs;
 }
 
-inline v3& operator-=(v3& lhs, f32 rhs)
+template<typename T>
+inline v3<T>& operator-=(v3<T>& lhs, T rhs)
 {
     lhs = lhs - rhs;
 
     return lhs;
 }
 
-inline v3 operator*(f32 lhs, v3 rhs)
+template<typename T>
+inline v3<T> operator*(T lhs, v3<T> rhs)
 {
-    v3 res;
+    v3<T> res;
 
     res.x = lhs * rhs.x;
     res.y = lhs * rhs.y;
@@ -498,9 +489,10 @@ inline v3 operator*(f32 lhs, v3 rhs)
     return res;
 }
 
-inline v3 operator*(v3 lhs, f32 rhs)
+template<typename T>
+inline v3<T> operator*(v3<T> lhs, T rhs)
 {
-    v3 res;
+    v3<T> res;
 
     res.x = lhs.x * rhs;
     res.y = lhs.y * rhs;
@@ -509,16 +501,18 @@ inline v3 operator*(v3 lhs, f32 rhs)
     return res;
 }
 
-inline v3& operator*=(v3& lhs, f32 rhs)
+template<typename T>
+inline v3<T>& operator*=(v3<T>& lhs, T rhs)
 {
     lhs = lhs * rhs;
 
     return lhs;
 }
 
-inline v3 operator/(v3 lhs, f32 rhs)
+template<typename T>
+inline v3<T> operator/(v3<T> lhs, T rhs)
 {
-    v3 res;
+    v3<T> res;
 
     res.x = lhs.x / rhs;
     res.y = lhs.y / rhs;
@@ -527,19 +521,22 @@ inline v3 operator/(v3 lhs, f32 rhs)
     return res;
 }
 
-inline v3& operator/=(v3& lhs, f32 rhs)
+template<typename T>
+inline v3<T>& operator/=(v3<T>& lhs, T rhs)
 {
     lhs = lhs / rhs;
 
     return lhs;
 }
 
-inline bool operator==(v3& lhs, v3 rhs)
+template<typename T>
+inline bool operator==(v3<T>& lhs, v3<T> rhs)
 {
     return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
 }
 
-inline bool operator!=(v3& lhs, v3 rhs)
+template<typename T>
+inline bool operator!=(v3<T>& lhs, v3<T> rhs)
 {
     return !(lhs == rhs);
 }
@@ -548,9 +545,10 @@ inline bool operator!=(v3& lhs, v3 rhs)
 // #VECTOR 4
 // ===============================================================================================
 
-inline v4 v4_init(f32 x, f32 y, f32 z, f32 w)
+template<typename T>
+inline v4<T> v4_init(T x, T y, T z, T w)
 {
-    v4 res;
+    v4<T> res;
 
     res.x = x;
     res.y = y;
@@ -560,9 +558,10 @@ inline v4 v4_init(f32 x, f32 y, f32 z, f32 w)
     return res;
 }
 
-inline v4 v4_init(v2 a, f32 z = 0.0f, f32 w = 0.0f)
+template<typename T>
+inline v4<T> v4_init(v2<T> a, T z = 0.0f, T w = 0.0f)
 {
-    v4 res;
+    v4<T> res;
     res.x = a.x;
     res.y = a.y;
     res.z = z;
@@ -571,9 +570,10 @@ inline v4 v4_init(v2 a, f32 z = 0.0f, f32 w = 0.0f)
     return res;
 }
 
-inline v4 v4_init(v3 a, f32 w = 0.0f)
+template<typename T>
+inline v4<T> v4_init(v3<T> a, T w = 0.0f)
 {
-    v4 res;
+    v4<T> res;
     res.x = a.x;
     res.y = a.y;
     res.z = a.z;
@@ -582,14 +582,16 @@ inline v4 v4_init(v3 a, f32 w = 0.0f)
     return res;
 }
 
-inline v4 v4_zero()
+template<typename T>
+inline v4<T> v4_zero()
 {
     return {};
 }
 
-inline v4 operator+(v4 lhs, v4 rhs)
+template<typename T>
+inline v4<T> operator+(v4<T> lhs, v4<T> rhs)
 {
-    v4 res;
+    v4<T> res;
 
     res.x = lhs.x + rhs.x;
     res.y = lhs.y + rhs.y;
@@ -599,9 +601,10 @@ inline v4 operator+(v4 lhs, v4 rhs)
     return res;
 }
 
-inline v4 operator+(v4 lhs, f32 rhs)
+template<typename T>
+inline v4<T> operator+(v4<T> lhs, T rhs)
 {
-    v4 res;
+    v4<T> res;
 
     res.x = lhs.x + rhs;
     res.y = lhs.y + rhs;
@@ -611,23 +614,26 @@ inline v4 operator+(v4 lhs, f32 rhs)
     return res;
 }
 
-inline v4& operator+=(v4& lhs, v4 rhs)
+template<typename T>
+inline v4<T> operator+=(v4<T> lhs, v4<T> rhs)
 {
     lhs = lhs + rhs;
 
     return lhs;
 }
 
-inline v4& operator+=(v4& lhs, f32 rhs)
+template<typename T>
+inline v4<T> operator+=(v4<T> lhs, T rhs)
 {
     lhs = lhs + rhs;
 
     return lhs;
 }
 
-inline v4 operator-(v4 lhs)
+template<typename T>
+inline v4<T> operator-(v4<T> lhs)
 {
-    v4 res;
+    v4<T> res;
 
     res.x = -lhs.x;
     res.y = -lhs.y;
@@ -636,9 +642,10 @@ inline v4 operator-(v4 lhs)
 
     return res;
 }
-inline v4 operator-(v4 lhs, v4 rhs)
+template<typename T>
+inline v4<T> operator-(v4<T> lhs, v4<T> rhs)
 {
-    v4 res;
+    v4<T> res;
 
     res.x = lhs.x - rhs.x;
     res.y = lhs.y - rhs.y;
@@ -648,9 +655,10 @@ inline v4 operator-(v4 lhs, v4 rhs)
     return res;
 }
 
-inline v4 operator-(v4 lhs, f32 rhs)
+template<typename T>
+inline v4<T> operator-(v4<T> lhs, T rhs)
 {
-    v4 res;
+    v4<T> res;
 
     res.x = lhs.x - rhs;
     res.y = lhs.y - rhs;
@@ -660,23 +668,26 @@ inline v4 operator-(v4 lhs, f32 rhs)
     return res;
 }
 
-inline v4& operator-=(v4& lhs, v4 rhs)
+template<typename T>
+inline v4<T> operator-=(v4<T> lhs, v4<T> rhs)
 {
     lhs = lhs - rhs;
 
     return lhs;
 }
 
-inline v4& operator-=(v4& lhs, f32 rhs)
+template<typename T>
+inline v4<T> operator-=(v4<T> lhs, T rhs)
 {
     lhs = lhs - rhs;
 
     return lhs;
 }
 
-inline v4 operator*(f32 lhs, v4 rhs)
+template<typename T>
+inline v4<T> operator*(T lhs, v4<T> rhs)
 {
-    v4 res;
+    v4<T> res;
 
     res.x = lhs * rhs.x;
     res.y = lhs * rhs.y;
@@ -686,9 +697,10 @@ inline v4 operator*(f32 lhs, v4 rhs)
     return res;
 }
 
-inline v4 operator*(v4 lhs, f32 rhs)
+template<typename T>
+inline v4<T> operator*(v4<T> lhs, T rhs)
 {
-    v4 res;
+    v4<T> res;
 
     res.x = lhs.x * rhs;
     res.y = lhs.y * rhs;
@@ -698,16 +710,18 @@ inline v4 operator*(v4 lhs, f32 rhs)
     return res;
 }
 
-inline v4& operator*=(v4& lhs, f32 rhs)
+template<typename T>
+inline v4<T> operator*=(v4<T> lhs, T rhs)
 {
     lhs = lhs * rhs;
 
     return lhs;
 }
 
-inline v4 operator*(v4 lhs, v3 rhs)
+template<typename T>
+inline v4<T> operator*(v4<T> lhs, v3<T> rhs)
 {
-    v4 res;
+    v4<T> res;
 
     res.w = (lhs.x * rhs.x) - (lhs.y * rhs.y) - (lhs.z * rhs.z);
     res.x = (lhs.w * rhs.x) + (lhs.y * rhs.z) - (lhs.z * rhs.y);
@@ -717,15 +731,17 @@ inline v4 operator*(v4 lhs, v3 rhs)
     return res;
 }
 
-inline v4 operator*=(v4& lhs, v3 rhs)
+template<typename T>
+inline v4<T> operator*=(v4<T> lhs, v3<T> rhs)
 {
     lhs = lhs * rhs;
     return lhs;
 }
 
-inline v4 operator*(v4 lhs, v4 rhs)
+template<typename T>
+inline v4<T> operator*(v4<T> lhs, v4<T> rhs)
 {
-    v4 res;
+    v4<T> res;
 
     res.w = (lhs.w * rhs.w) - (lhs.x * rhs.x) - (lhs.y * rhs.y) - (lhs.z * rhs.z);
     res.x = (lhs.x * rhs.w) + (lhs.w * rhs.x) + (lhs.y * rhs.z) - (lhs.z * rhs.y);
@@ -735,15 +751,17 @@ inline v4 operator*(v4 lhs, v4 rhs)
     return res;
 }
 
-inline v4 operator*=(v4& lhs, v4 rhs)
+template<typename T>
+inline v4<T> operator*=(v4<T> lhs, v4<T> rhs)
 {
     lhs = lhs * rhs;
     return lhs;
 }
 
-inline v4 operator/(v4 lhs, f32 rhs)
+template<typename T>
+inline v4<T> operator/(v4<T> lhs, T rhs)
 {
-    v4 res;
+    v4<T> res;
 
     res.x = lhs.x / rhs;
     res.y = lhs.y / rhs;
@@ -753,19 +771,22 @@ inline v4 operator/(v4 lhs, f32 rhs)
     return res;
 }
 
-inline v4& operator/=(v4& lhs, f32 rhs)
+template<typename T>
+inline v4<T> operator/=(v4<T> lhs, T rhs)
 {
     lhs = lhs / rhs;
 
     return lhs;
 }
 
-inline bool operator==(v4& lhs, v4& rhs)
+template<typename T>
+inline bool operator==(v4<T> lhs, v4<T> rhs)
 {
     return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z && lhs.w == rhs.w;
 }
 
-inline bool operator!=(v4& lhs, v4& rhs)
+template<typename T>
+inline bool operator!=(v4<T> lhs, v4<T>& rhs)
 {
     return !(lhs == rhs);
 }
@@ -775,57 +796,57 @@ inline bool operator!=(v4& lhs, v4& rhs)
 // ===============================================================================================
 
 // NOTE: inner product or dot product
-inline f32 vec_inner(v2 a, v2 b)
+inline f32 vec_inner(v2f a, v2f b)
 {
     f32 res = a.x * b.x + a.y * b.y;
     return res;
 };
 
-inline f32 vec_inner(v3 a, v3 b)
+inline f32 vec_inner(v3f a, v3f b)
 {
     f32 res = a.x * b.x + a.y * b.y + a.z * b.z;
     return res;
 };
 
-inline f32 vec_inner(v4 a, v4 b)
+inline f32 vec_inner(v4f a, v4f b)
 {
     f32 res = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     return res;
 };
 
-inline f32 vec_dot(v2 a, v2 b)
+inline f32 vec_dot(v2f a, v2f b)
 {
     return vec_inner(a, b);
 }
 
-inline f32 vec_dot(v3 a, v3 b)
+inline f32 vec_dot(v3f a, v3f b)
 {
     return vec_inner(a, b);
 }
 
-inline f32 vec_dot(v4 a, v4 b)
+inline f32 vec_dot(v4f a, v4f b)
 {
     return vec_inner(a, b);
 }
 
-inline v2 vec_lerp(v2 a, v2 b, f32 t)
+inline v2f vec_lerp(v2f a, v2f b, f32 t)
 {
     return (1.0f - t) * a + t * b;
 }
 
-inline v3 vec_lerp(v3 a, v3 b, f32 t)
+inline v3f vec_lerp(v3f a, v3f b, f32 t)
 {
     return (1.0f - t) * a + t * b;
 }
 
-inline v4 vec_lerp(v4 a, v4 b, f32 t)
+inline v4f vec_lerp(v4f a, v4f b, f32 t)
 {
     return (1.0f - t) * a + t * b;
 }
 
-inline v3 vec_cross(v3 a, v3 b)
+inline v3f vec_cross(v3f a, v3f b)
 {
-    v3 res;
+    v3f res;
 
     res.x = a.y * b.z - a.z * b.y;
     res.y = a.z * b.x - a.x * b.z;
@@ -834,9 +855,9 @@ inline v3 vec_cross(v3 a, v3 b)
     return res;
 }
 
-inline v2 vec_hadamard(v2 a, v2 b)
+inline v2f vec_hadamard(v2f a, v2f b)
 {
-    v2 res;
+    v2f res;
 
     res.x = a.x * b.x;
     res.y = a.y * b.y;
@@ -844,9 +865,9 @@ inline v2 vec_hadamard(v2 a, v2 b)
     return res;
 }
 
-inline v3 vec_hadamard(v3 a, v3 b)
+inline v3f vec_hadamard(v3f a, v3f b)
 {
-    v3 res;
+    v3f res;
 
     res.x = a.x * b.x;
     res.y = a.y * b.y;
@@ -855,9 +876,9 @@ inline v3 vec_hadamard(v3 a, v3 b)
     return res;
 }
 
-inline v4 vec_hadamard(v4 a, v4 b)
+inline v4f vec_hadamard(v4f a, v4f b)
 {
-    v4 res;
+    v4f res;
 
     res.x = a.x * b.x;
     res.y = a.y * b.y;
@@ -867,48 +888,48 @@ inline v4 vec_hadamard(v4 a, v4 b)
     return res;
 }
 
-inline f32 vec_length_sq(v2 a)
+inline f32 vec_length_sq(v2f a)
 {
     f32 res = vec_inner(a, a);
     return res;
 }
 
-inline f32 vec_length_sq(v3 a)
+inline f32 vec_length_sq(v3f a)
 {
     f32 res = vec_inner(a, a);
     return res;
 }
 
-inline f32 vec_length_sq(v4 a)
+inline f32 vec_length_sq(v4f a)
 {
     f32 res = vec_inner(a, a);
     return res;
 }
 
-inline f32 vec_length(v2 a)
+inline f32 vec_length(v2f a)
 {
     f32 res = sqrt_f32(vec_length_sq(a));
     return res;
 }
 
-inline f32 vec_length(v3 a)
+inline f32 vec_length(v3f a)
 {
     f32 res = sqrt_f32(vec_length_sq(a));
     return res;
 }
 
-inline f32 vec_length(v4 a)
+inline f32 vec_length(v4f a)
 {
     f32 res = sqrt_f32(vec_length_sq(a));
     return res;
 }
 
-inline v3 vec_normalize(v3 a)
+inline v3f vec_normalize(v3f a)
 {
     f32 len = vec_length(a);
-    TOM_ASSERT(len != 0.0f);
+    Assert(len != 0.0f);
 
-    v3 res;
+    v3f res;
 
     res.x = a.x / len;
     res.y = a.y / len;
@@ -917,32 +938,32 @@ inline v3 vec_normalize(v3 a)
     return res;
 }
 
-inline f32 vec_distance(v2 a, v2 b)
+inline f32 vec_distance(v2f a, v2f b)
 {
-    v2 dis = a - b;
-    dis.x  = abs(dis.x);
-    dis.y  = abs(dis.y);
+    v2f dis = a - b;
+    dis.x   = abs(dis.x);
+    dis.y   = abs(dis.y);
 
     f32 res = vec_length(dis);
 
     return res;
 }
 
-inline f32 vec_distance(v3 a, v3 b)
+inline f32 vec_distance(v3f a, v3f b)
 {
-    v3 dis = a - b;
-    dis.x  = abs(dis.x);
-    dis.y  = abs(dis.y);
-    dis.z  = abs(dis.z);
+    v3f dis = a - b;
+    dis.x   = abs(dis.x);
+    dis.y   = abs(dis.y);
+    dis.z   = abs(dis.z);
 
     f32 res = vec_length(dis);
 
     return res;
 }
 
-inline v2 vec_reflect(v2 a, v2 b)
+inline v2f vec_reflect(v2f a, v2f b)
 {
-    v2 res;
+    v2f res;
 
     f32 dot = vec_inner(a, b);
 
@@ -952,9 +973,9 @@ inline v2 vec_reflect(v2 a, v2 b)
     return res;
 }
 
-inline v3 vec_reflect(v3 a, v3 b)
+inline v3f vec_reflect(v3f a, v3f b)
 {
-    v3 res;
+    v3f res;
 
     f32 dot = vec_inner(a, b);
 
@@ -967,13 +988,13 @@ inline v3 vec_reflect(v3 a, v3 b)
 
 // Compute barycenter coordinates (u, v, w) for point p with respect to triangle (a, b, c)
 // NOTE: Assumes P is on the plane of the triangle
-inline v3 vec_barycenter(v3 p, v3 a, v3 b, v3 c)
+inline v3f vec_barycenter(v3f p, v3f a, v3f b, v3f c)
 {
-    v3 res;
+    v3f res;
 
-    v3 v0   = { b.x - a.x, b.y - a.y, b.z - a.z };
-    v3 v1   = { c.x - a.x, c.y - a.y, c.z - a.z };
-    v3 v2   = { p.x - a.x, p.y - a.y, p.z - a.z };
+    v3f v0  = { b.x - a.x, b.y - a.y, b.z - a.z };
+    v3f v1  = { c.x - a.x, c.y - a.y, c.z - a.z };
+    v3f v2  = { p.x - a.x, p.y - a.y, p.z - a.z };
     f32 d00 = v0.x * v0.x + v0.y * v0.y + v0.z * v0.z;
     f32 d01 = v0.x * v1.x + v0.y * v1.y + v0.z * v1.z;
     f32 d11 = v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
@@ -993,9 +1014,9 @@ inline v3 vec_barycenter(v3 p, v3 a, v3 b, v3 c)
 // #Quaternion
 // ===============================================================================================
 
-using quat = v4;  // Quaternion
+using quat = v4f;  // Quaternion
 
-inline quat quat_to_quat(v3 v, f32 a)
+inline quat quat_to_quat(v3f v, f32 a)
 {
     f32 half_angle_rad = to_radian(a / 2.0f);
     f32 sin_half_angle = sinf(half_angle_rad);
@@ -1049,7 +1070,7 @@ inline quat quat_inverse(quat a)
     f32 abs   = 1 / (square(quat_norm(a)));
     quat conj = quat_conjuate(a);
     f32 s     = conj.w * abs;
-    v3 i      = conj.xyz * abs;
+    v3f i     = conj.xyz * abs;
 
     quat res;
     res.xyz = i;
@@ -1059,7 +1080,7 @@ inline quat quat_inverse(quat a)
 }
 
 // rotate v3 around arbitrary axis
-inline v3 quat_rotate(v3 v, v3 u, f32 a)
+inline v3f quat_rotate(v3f v, v3f u, f32 a)
 {
     quat p   = { v.x, v.y, v.z, 0.0f };
     u        = vec_normalize(u);
@@ -1072,9 +1093,9 @@ inline v3 quat_rotate(v3 v, v3 u, f32 a)
 }
 
 // transform a v3 by quat
-inline v3 quat_rotate(v3 v, quat q)
+inline v3f quat_rotate(v3f v, quat q)
 {
-    v3 res;
+    v3f res;
 
     res.x = v.x * (q.x * q.x + q.w * q.w - q.y * q.y - q.z * q.z) +
             v.y * (2 * q.x * q.y - 2 * q.w * q.z) + v.z * (2 * q.x * q.z + 2 * q.w * q.y);
@@ -1115,9 +1136,9 @@ inline m4 operator*(m4 a, m4 b)
     return res;
 }
 
-inline v3 transform(m4 a, v3 p, f32 Pw = 1.0f)
+inline v3f transform(m4 a, v3f p, f32 Pw = 1.0f)
 {
-    v3 res = {};
+    v3f res = {};
 
     res.x = p.x * a.m[0][0] + p.y * a.m[0][1] + p.z * a.m[0][2] + Pw * a.m[0][3];
     res.y = p.x * a.m[1][0] + p.y * a.m[1][1] + p.z * a.m[1][2] + Pw * a.m[1][3];
@@ -1126,9 +1147,9 @@ inline v3 transform(m4 a, v3 p, f32 Pw = 1.0f)
     return res;
 }
 
-inline v3 operator*(m4 a, v3 p)
+inline v3f operator*(m4 a, v3f p)
 {
-    v3 res = transform(a, p, 1.0f);
+    v3f res = transform(a, p, 1.0f);
 
     return res;
 }
@@ -1212,7 +1233,7 @@ inline m4 mat_rot_z(m4 a, f32 b)
 }
 
 // u = arbitrary axis, a = angle
-inline m4 mat_rotate(v3 u, f32 a)
+inline m4 mat_rotate(v3f u, f32 a)
 {
     a       = to_radian(a);
     f32 c   = cos(a);
@@ -1239,7 +1260,7 @@ inline m4 mat_rotate(v3 u, f32 a)
 }
 
 // u = arbitrary axis, a = angle
-inline m4 mat_rotate(m4 m, v3 u, f32 a)
+inline m4 mat_rotate(m4 m, v3f u, f32 a)
 {
     m4 res = m * mat_rotate(u, a);
 
@@ -1290,10 +1311,10 @@ inline m4 mat_transpose(m4 a)
 
 inline m4 mat_proj_persp(f32 aspect_ratio, f32 fov_y, f32 near_z, f32 far_z)
 {
-    TOM_ASSERT(near_z > 0.0f && far_z > 0.0f);
-    TOM_ASSERT(!near_equal_f32(fov_y, 0.0f, 0.00001f * 2.0f));
-    TOM_ASSERT(!near_equal_f32(aspect_ratio, 0.0f));
-    TOM_ASSERT(!near_equal_f32(near_z, far_z));
+    Assert(near_z > 0.0f && far_z > 0.0f);
+    Assert(!near_equal_f32(fov_y, 0.0f, 0.00001f * 2.0f));
+    Assert(!near_equal_f32(aspect_ratio, 0.0f));
+    Assert(!near_equal_f32(near_z, far_z));
 
     f32 sin_fov, cos_fov;
     scalar_sin_cos(&sin_fov, &cos_fov, 0.5f * fov_y);
@@ -1323,7 +1344,7 @@ inline m4 mat_proj_ortho(f32 aspect_ratio)
     return res;
 }
 
-inline m4 mat_col_3x3(v3 x, v3 y, v3 z)
+inline m4 mat_col_3x3(v3f x, v3f y, v3f z)
 {
     // clang-format off
     m4 res = {
@@ -1337,7 +1358,7 @@ inline m4 mat_col_3x3(v3 x, v3 y, v3 z)
     return res;
 }
 
-inline m4 mat_row_3x3(v3 x, v3 y, v3 z)
+inline m4 mat_row_3x3(v3f x, v3f y, v3f z)
 {
     // clang-format off
     m4 res = {
@@ -1351,7 +1372,7 @@ inline m4 mat_row_3x3(v3 x, v3 y, v3 z)
     return res;
 }
 
-inline m4 mat_translate(v3 t)
+inline m4 mat_translate(v3f t)
 {
     m4 res = mat_identity();
 
@@ -1383,7 +1404,7 @@ inline m4 mat_translate_z(m4 a, f32 tz)
     return a;
 }
 
-inline m4 mat_translate(m4 a, v3 t)
+inline m4 mat_translate(m4 a, v3f t)
 {
     a.m[3][0] += t.x;
     a.m[3][1] += t.y;
@@ -1392,7 +1413,7 @@ inline m4 mat_translate(m4 a, v3 t)
     return a;
 }
 
-inline m4 mat_set_translation(m4 a, v3 t)
+inline m4 mat_set_translation(m4 a, v3f t)
 {
     a.m[3][0] = t.x;
     a.m[3][1] = t.y;
@@ -1422,21 +1443,21 @@ inline m4 mat_set_translation_z(m4 a, f32 tz)
     return a;
 }
 
-inline v3 mat_get_col(m4 a, u32 c)
+inline v3f mat_get_col(m4 a, u32 c)
 {
-    v3 res = { a.m[0][c], a.m[1][c], a.m[2][c] };
+    v3f res = { a.m[0][c], a.m[1][c], a.m[2][c] };
 
     return res;
 }
 
-inline v3 mat_get_row(m4 a, u32 r)
+inline v3f mat_get_row(m4 a, u32 r)
 {
-    v3 res = { a.m[r][0], a.m[r][1], a.m[r][2] };
+    v3f res = { a.m[r][0], a.m[r][1], a.m[r][2] };
 
     return res;
 }
 
-inline m4 mat_uvn_to_m4(v3 pos, v3 u, v3 v, v3 n)
+inline m4 mat_uvn_to_m4(v3f pos, v3f u, v3f v, v3f n)
 {
     m4 res = { u.x, u.y, u.z, -pos.x, v.x,  v.y,  v.z,  -pos.y,
                n.x, n.y, n.z, -pos.z, 0.0f, 0.0f, 0.0f, 1.0f };
@@ -1444,14 +1465,14 @@ inline m4 mat_uvn_to_m4(v3 pos, v3 u, v3 v, v3 n)
     return res;
 }
 
-inline m4 mat_look_to(v3 eye_pos, v3 eye_dir, v3 up_dir)
+inline m4 mat_look_to(v3f eye_pos, v3f eye_dir, v3f up_dir)
 {
-    TOM_ASSERT(eye_dir != v3_zero());
-    TOM_ASSERT(up_dir != v3_zero());
+    Assert(eye_dir != v3_zero<f32>());
+    Assert(up_dir != v3_zero<f32>());
 
-    v3 r2 = vec_normalize(eye_dir);
-    v3 r0 = vec_normalize(vec_cross(up_dir, r2));
-    v3 r1 = vec_cross(r2, r0);
+    v3f r2 = vec_normalize(eye_dir);
+    v3f r0 = vec_normalize(vec_cross(up_dir, r2));
+    v3f r1 = vec_cross(r2, r0);
 
     f32 d0 = vec_dot(r0, -eye_pos);
     f32 d1 = vec_dot(r1, -eye_pos);
@@ -1466,17 +1487,17 @@ inline m4 mat_look_to(v3 eye_pos, v3 eye_dir, v3 up_dir)
     return res;
 }
 
-inline m4 mat_look_at(v3 eye_pos, v3 target_pos, v3 up_dir)
+inline m4 mat_look_at(v3f eye_pos, v3f target_pos, v3f up_dir)
 {
-    v3 eye_dir = target_pos - eye_pos;
+    v3f eye_dir = target_pos - eye_pos;
     return mat_look_to(eye_pos, eye_dir, up_dir);
 }
 
-inline m4 mat_get_uvn(v3 forward, v3 up, v3 pos)
+inline m4 mat_get_uvn(v3f forward, v3f up, v3f pos)
 {
-    v3 n = vec_normalize(forward);
-    v3 u = vec_normalize(vec_cross(up, n));
-    v3 v = vec_cross(n, u);
+    v3f n = vec_normalize(forward);
+    v3f u = vec_normalize(vec_cross(up, n));
+    v3f v = vec_cross(n, u);
 
     m4 res = mat_row_3x3(u, v, n) * mat_translate(-pos);
 
@@ -1491,19 +1512,10 @@ inline m4 mat_inverse(m4 a)
 // #RECTANGLE FUNCS
 // ===============================================================================================
 
-inline r3 r3_init(r2 a)
+template<typename T>
+inline r2<T> operator+=(r2<T>& lhs, T rhs)
 {
-    r3 res;
-
-    res.min = v3_init(a.min);
-    res.max = v3_init(a.max);
-
-    return res;
-}
-
-inline r2 operator+=(r2& lhs, f32 rhs)
-{
-    r2 res;
+    r2<T> res;
 
     lhs.min.x += rhs;
     lhs.min.y += rhs;
@@ -1513,33 +1525,10 @@ inline r2 operator+=(r2& lhs, f32 rhs)
     return res;
 }
 
-inline v2 rect_max_corner(r2 a)
+template<typename T>
+inline r2<T> rect_init_min_max(v2<T> min, v2<T> max)
 {
-    v2 res = a.max;
-    return res;
-}
-
-inline v3 rect_max_corner(r3 a)
-{
-    v3 res = a.max;
-    return res;
-}
-
-inline v2 rect_min_corner(r2 a)
-{
-    v2 res = a.min;
-    return res;
-}
-
-inline v3 rect_min_corner(r3 a)
-{
-    v3 res = a.min;
-    return res;
-}
-
-inline r2 rect_min_max(v2 min, v2 max)
-{
-    r2 res;
+    r2<T> res;
 
     res.min = min;
     res.max = max;
@@ -1547,9 +1536,10 @@ inline r2 rect_min_max(v2 min, v2 max)
     return res;
 }
 
-inline r3 rect_min_max(v3 min, v3 max)
+template<typename T>
+inline r3<T> rect_init_min_max(v3<T> min, v3<T> max)
 {
-    r3 res;
+    r3<T> res;
 
     res.min = min;
     res.max = max;
@@ -1557,9 +1547,10 @@ inline r3 rect_min_max(v3 min, v3 max)
     return res;
 }
 
-inline r2 rect_min_dim(v2 min, v2 dim)
+template<typename T>
+inline r2<T> rect_init_min_dim(v2<T> min, v2<T> dim)
 {
-    r2 res;
+    r2<T> res;
 
     res.min = min;
     res.max = min + dim;
@@ -1567,9 +1558,10 @@ inline r2 rect_min_dim(v2 min, v2 dim)
     return res;
 }
 
-inline r3 rect_min_dim(v3 min, v3 dim)
+template<typename T>
+inline r3<T> rect_init_min_dim(v3<T> min, v3<T> dim)
 {
-    r3 res;
+    r3<T> res;
 
     res.min = min;
     res.max = min + dim;
@@ -1577,9 +1569,10 @@ inline r3 rect_min_dim(v3 min, v3 dim)
     return res;
 }
 
-inline r2 rect_center_half_dim(v2 center, v2 half_dim)
+template<typename T>
+inline r2<T> rect_init_center_half_dim(v2<T> center, v2<T> half_dim)
 {
-    r2 res;
+    r2<T> res;
 
     res.min = center - half_dim;
     res.max = center + half_dim;
@@ -1587,9 +1580,10 @@ inline r2 rect_center_half_dim(v2 center, v2 half_dim)
     return res;
 }
 
-inline r3 rect_center_half_dim(v3 center, v3 half_dim)
+template<typename T>
+inline r3<T> rect_init_center_half_dim(v3<T> center, v3<T> half_dim)
 {
-    r3 res;
+    r3<T> res;
 
     res.min = center - half_dim;
     res.max = center + half_dim;
@@ -1597,50 +1591,57 @@ inline r3 rect_center_half_dim(v3 center, v3 half_dim)
     return res;
 }
 
-inline r2 rect_center_dim(v2 center, v2 dim)
+template<typename T>
+inline r2<T> rect_init_center_dim(v2<T> center, v2<T> dim)
 {
-    r2 res = rect_center_half_dim(center, dim * 0.5f);
+    r2<T> res = rect_center_half_dim(center, dim / (T)2);
 
     return res;
 }
 
-inline r3 rect_center_dim(v3 center, v3 dim)
+template<typename T>
+inline r3<T> rect_init_center_dim(v3<T> center, v3<T> dim)
 {
-    r3 res = rect_center_half_dim(center, dim * 0.5f);
+    r3<T> res = rect_center_half_dim(center, dim / (T)2);
 
     return res;
 }
 
-inline v2 rect_center(r2 a)
+template<typename T>
+inline v2<T> rect_get_center(r2<T> a)
 {
-    v2 res = 0.5f * (a.min + a.max);
+    v2<T> res = (a.min + a.max) / (T)2;
 
     return res;
 }
 
-inline v3 rect_center(r3 a)
+template<typename T>
+inline v3<T> rect_get_center(r3<T> a)
 {
-    v3 res = 0.5f * (a.min + a.max);
+    v3<T> res = (a.min + a.max) / (T)2;
 
     return res;
 }
 
-inline bool rect_is_inside(r2 a, v2 test)
+template<typename T>
+inline bool rect_is_inside(r2<T> a, v2<T> b)
 {
-    bool res = test.x >= a.min.x && test.y >= a.min.y && test.x <= a.max.x && test.y <= a.max.y;
+    bool res = b.x >= a.min.x && b.y >= a.min.y && b.x <= a.max.x && b.y <= a.max.y;
     return res;
 }
 
-inline bool rect_is_inside(r3 a, v3 test)
+template<typename T>
+inline bool rect_is_inside(r3<T> a, v3<T> b)
 {
-    bool res = test.x >= a.min.x && test.y >= a.min.y && test.x <= a.max.x && test.y <= a.max.y &&
-               test.z >= a.min.z && test.z <= a.max.z;
+    bool res = b.x >= a.min.x && b.y >= a.min.y && b.x <= a.max.x && b.y <= a.max.y &&
+               b.z >= a.min.z && b.z <= a.max.z;
     return res;
 }
 
-inline r2 rect_add_dim(r2 a, v2 dim)
+template<typename T>
+inline r2f rect_add_dim(r2<T> a, v2<T> dim)
 {
-    r2 res;
+    r2f res;
 
     res.min = a.min - dim;
     res.max = a.max + dim;
@@ -1648,9 +1649,10 @@ inline r2 rect_add_dim(r2 a, v2 dim)
     return res;
 }
 
-inline r3 rect_add_dim(r3 a, v3 dim)
+template<typename T>
+inline r3<T> rect_add_dim(r3<T> a, v3<T> dim)
 {
-    r3 res;
+    r3f res;
 
     res.min = a.min - dim;
     res.max = a.max + dim;
@@ -1658,26 +1660,30 @@ inline r3 rect_add_dim(r3 a, v3 dim)
     return res;
 }
 
-inline r2 rect_add_radius(r2 a, f32 r)
+template<typename T>
+inline r2<T> rect_add_radius(r2<T> a, T r)
 {
-    v2 r_ = { r, r };
+    v2<T> r_ = { r, r };
     return rect_add_dim(a, r_);
 }
 
-inline r3 rect_add_radius(r3 a, f32 r)
+template<typename T>
+inline r3<T> rect_add_radius(r3<T> a, T r)
 {
-    v3 r_ = { r, r, r };
+    v3<T> r_ = { r, r, r };
     return rect_add_dim(a, r_);
 }
 
-inline bool rect_intersect(r2 a, r2 b)
+template<typename T>
+inline bool rect_intersect(r2<T> a, r2<T> b)
 {
     bool res = !(b.max.x < a.min.x || b.min.x > a.max.x || b.max.y < a.min.y || b.min.y > a.max.y);
 
     return res;
 }
 
-inline bool rect_intersect(r3 a, r3 b)
+template<typename T>
+inline bool rect_intersect(r3<T> a, r3<T> b)
 {
     bool res = !(b.max.x < a.min.x || b.min.x > a.max.x || b.max.y < a.min.y || b.min.y > a.max.y ||
                  b.max.z < a.min.z || b.min.z > a.max.z);
@@ -1685,9 +1691,10 @@ inline bool rect_intersect(r3 a, r3 b)
     return res;
 }
 
-inline v2 rect_barycenter(r2 a, v3 p)
+template<typename T>
+inline v2f rect_barycenter(r2f a, v3f p)
 {
-    v2 res;
+    v2f res;
 
     res.x = safe_ratio_0(p.x - a.min.x, a.max.x - a.min.x);
     res.y = safe_ratio_0(p.y - a.min.y, a.max.y - a.min.y);
@@ -1695,9 +1702,10 @@ inline v2 rect_barycenter(r2 a, v3 p)
     return res;
 }
 
-inline v3 rect_barycenter(r3 a, v3 p)
+template<typename T>
+inline v3f rect_barycenter(r3f a, v3f p)
 {
-    v3 res;
+    v3f res;
 
     res.x = safe_ratio_0(p.x - a.min.x, a.max.x - a.min.x);
     res.y = safe_ratio_0(p.y - a.min.y, a.max.y - a.min.y);
@@ -1706,17 +1714,17 @@ inline v3 rect_barycenter(r3 a, v3 p)
     return res;
 }
 
-inline void print(v2 a)
+inline void print(v2f a)
 {
     printf("(%f, %f)", a.x, a.y);
 }
 
-inline void print(v3 a)
+inline void print(v3f a)
 {
     printf("(%f, %f, %f)", a.x, a.y, a.z);
 }
 
-inline void print(v4 a)
+inline void print(v4f a)
 {
     printf("(%f, %f, %f, %f)", a.x, a.y, a.z, a.w);
 }
@@ -1728,12 +1736,12 @@ inline void print(m4 a)
     }
 }
 
-inline void printl(v2 a)
+inline void printl(v2f a)
 {
     printf("(%f, %f)\n", a.x, a.y);
 }
 
-inline void printl(v3 a)
+inline void printl(v3f a)
 {
     printf("(%f, %f, %f)\n", a.x, a.y, a.z);
 }

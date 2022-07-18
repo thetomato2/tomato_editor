@@ -6,7 +6,7 @@ struct Win32State
     bool running;
     bool pause;
     bool resize;
-    WindowDims win_dims;
+    r2i win_dims;
     i32 ms_scroll;
     WINDOWPLACEMENT win_pos = { sizeof(win_pos) };
     HWND hwnd;

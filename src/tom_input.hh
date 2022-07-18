@@ -155,8 +155,8 @@ struct Key : public Button
 struct Mouse
 {
     global constexpr szt but_cnt = 3;
-    v2 pos;
-    v2 pos_last;
+    v2f pos;
+    v2f pos_last;
 
     union
     {
@@ -170,7 +170,7 @@ struct Mouse
 
     i32 scroll;
 
-    v2 get_delta() const { return pos - pos_last; }
+    v2f get_delta() const { return pos - pos_last; }
 };
 
 struct Keyboard

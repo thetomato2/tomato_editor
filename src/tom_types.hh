@@ -20,6 +20,9 @@ typedef unsigned char byt;
 typedef int32_t b32;
 typedef wchar_t wchar;
 
+typedef uintptr_t umm;
+typedef intptr_t smm;
+
 #define U8_MIN 0u
 #define U8_MAX 0xffu
 #define I8_MIN (-0x7f - 1)
@@ -40,90 +43,113 @@ typedef wchar_t wchar;
 #define I64_MIN (-0x7fffffffffffffffll - 1)
 #define I64_MAX 0x7fffffffffffffffll
 
-#define BIT(x) (1 << x)
+#define Bit(x) (1 << x)
 
-#define KILOBYTES(val) ((val)*1024)
-#define MEGABYTES(val) (KILOBYTES(val) * 1024)
-#define GIGABYTES(val) (MEGABYTES(val) * 1024)
-#define TERABYTES(val) (GIGABYTES(val) * 1024)
+#define Kilobytes(val) ((val)*1024)
+#define Megabytes(val) (Kilobytes(val) * 1024)
+#define Gigabytes(val) (Megabytes(val) * 1024)
+#define Terabytes(val) (Gigabytes(val) * 1024)
 
+template<typename T>
 union v2
 {
     struct
     {
-        f32 x, y;
+        T x, y;
     };
     struct
     {
-        f32 u, v;
+        T u, v;
     };
-    f32 e[2];
+    T e[2];
 };
 
+typedef v2<f32> v2f;
+
+template<typename T>
 union v3
 {
     struct
     {
-        f32 x, y, z;
+        T x, y, z;
     };
     struct
     {
-        f32 r, g, b;
+        T r, g, b;
     };
     struct
     {
-        v2 xy;
-        f32 _ignored0;
+        v2<T> xy;
+        T _ignored0;
     };
-    f32 e[3];
+    T e[3];
 };
 
+typedef v3<f32> v3f;
+
+template<typename T>
 union v4
 {
     struct
     {
-        f32 x, y, z, w;
+        T x, y, z, w;
     };
     struct
     {
-        f32 r, g, b, a;
+        T r, g, b, a;
     };
     struct
     {
-        v3 xyz;
-        f32 _ignored0;
+        v3<T> xyz;
+        T _ignored0;
     };
     struct
     {
-        v3 rgb;
-        f32 _ignored1;
+        v3f rgb;
+        T _ignored1;
     };
-    f32 e[4];
+    T e[4];
 };
+
+typedef v4<f32> v4f;
 
 union m4
 {
     f32 e[16];
     f32 m[4][4];
-    v4 r[4];
+    v4f r[4];
 };
 
-struct r2
+template<typename T>
+union r2
 {
-    v2 min;
-    v2 max;
+    struct
+    {
+        T x0, x1, y0, y1;
+    };
+    struct
+    {
+        v2<T> min;
+        v2<T> max;
+    };
 };
 
-struct r3
+typedef r2<f32> r2f;
+typedef r2<i32> r2i;
+
+template<typename T>
+union r3
 {
-    v3 min;
-    v3 max;
+    struct
+    {
+        T x0, x1, y0, y1, z0, z1;
+    };
+    struct
+    {
+        v3<T> min;
+        v3<T> max;
+    };
 };
 
-struct r2_i32
-{
-    i32 x_min;
-    i32 y_min;
-    i32 x_max;
-    i32 y_max;
-};
+typedef r3<f32> r3f;
+typedef r3<i32> r3i;

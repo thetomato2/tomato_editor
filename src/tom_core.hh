@@ -19,6 +19,11 @@
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
 
+#if 1
+    #include <dxgidebug.h>
+typedef HRESULT(WINAPI* LPDXGIGETDEBUGINTERFACE)(REFIID, void**);
+#endif
+
 #include <xinput.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
@@ -60,62 +65,118 @@
     #define TOM_DLL_EXPORT
 #endif
 
-#ifdef TOM_INTERNAL
-    #define TOM_ASSERT(x)                                               \
-        if (!(x)) {                                                     \
-            printf("FAILED ASSERT -> %s at :%d\n", __FILE__, __LINE__); \
-            __debugbreak();                                             \
-        }                                                               \
-        assert(x)
+enum CONSOLE_FG_COLORS
+{
+    FG_BLACK        = 0,
+    FG_BLUE         = 1,
+    FG_GREEN        = 2,
+    FG_CYAN         = 3,
+    FG_RED          = 4,
+    FG_MAGENTA      = 5,
+    FG_BROWN        = 6,
+    FG_LIGHTGRAY    = 7,
+    FG_GRAY         = 8,
+    FG_LIGHTBLUE    = 9,
+    FG_LIGHTGREEN   = 10,
+    FG_LIGHTCYAN    = 11,
+    FG_LIGHTRED     = 12,
+    FG_LIGHTMAGENTA = 13,
+    FG_YELLOW       = 14,
+    FG_WHITE        = 15
+};
 
-    #define TOM_ASSERT_MSG(x, msg)                                                \
-        if (!(x)) {                                                               \
-            printf("FAILED ASSERT -> %s at :%d - %s\n", __FILE__, __LINE__, msg); \
-            __debugbreak();                                                       \
-        }                                                                         \
+#define SetConsoleColor(x)                                 \
+    {                                                      \
+        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); \
+        SetConsoleTextAttribute(hConsole, x);              \
+    }
+
+#define PrintRed(str)        \
+    SetConsoleColor(FG_RED); \
+    printf(str);             \
+    SetConsoleColor(FG_WHITE);
+
+#define PrintGreen(str)        \
+    SetConsoleColor(FG_GREEN); \
+    printf(str);               \
+    SetConsoleColor(FG_WHITE);
+
+#define PrintBlue(str)        \
+    SetConsoleColor(FG_BLUE); \
+    printf(str);              \
+    SetConsoleColor(FG_WHITE);
+
+#define PrintYellow(str)        \
+    SetConsoleColor(FG_YELLOW); \
+    printf(str);                \
+    SetConsoleColor(FG_WHITE);
+
+#define PrintInfo(str)    \
+    PrintGreen("INFO: "); \
+    printf("%s\n", str);
+
+#define PrintMessage(str)   \
+    PrintBlue("MESSAGE: "); \
+    printf("%s\n", str);
+
+#define PrintWarning(str)     \
+    PrintYellow("WARNING: "); \
+    printf("%s\n", str);
+
+#define PrintCorruption(str)  \
+    PrintRed("CORRUPTION: "); \
+    printf("%s\n", str);
+
+#define PrintError(str)  \
+    PrintRed("ERROR: "); \
+    printf("%s\n", str);
+
+#ifdef TOM_INTERNAL
+    #define Assert(x)                                                              \
+        if (!(x)) {                                                                \
+            PrintRed("FAILED ASSERT:") printf(" %s at :%d\n", __FILE__, __LINE__); \
+            __debugbreak();                                                        \
+        }                                                                          \
         assert(x)
-    #define DEBUG_BREAK(x)  \
+    #define DebugBreak(x)   \
         if (x) {            \
             __debugbreak(); \
         }
-    #define INTERNAL_ONLY_EXECUTE(args) args
+    #define InternalOnlyExecute(args) args
 #else
-    #define TOM_ASSERT(x)
-    #define TOM_ASSERT_MSG(x, msg)
-    #define DEBUG_BREAK(x)
-    #define INTERNAL_ONLY_EXECUTE(args)
+    #define Assert(x)
+    #define DebugBreak(x)
+    #define InternalOnlyExecute(args)
 #endif
 
-// FIXME: there is no EXPP_TEXT
-#define EXPP_HRESULT(hr, what) EXPP_EXCEPTION(HRESULT, (HRESULT)hr, EXPP_TEXT(what))
-#define EVALUATE_HRESULT(call, what)      \
-    {                                     \
-        HRESULT hr;                       \
-        if (FAILED(hr = call)) {          \
-            throw EXPP_HRESULT(hr, what); \
-        }                                 \
-    }
-#define EVALUATE_HRESULT_HR(hr, call, what) \
-    if (FAILED(hr = call)) {                \
-        throw EXPP_HRESULT(hr, what);       \
-    }
+#define InvalidCodePath Assert(!"Invalid code path!")
+#define InvalidDefaultCase \
+    default: {             \
+        InvalidCodePath;   \
+    } break
+#define NotImplemented Assert(!"Not implemented!")
 
-#define TOM_INVALID_CODE_PATH TOM_ASSERT(!"Invalid code path!")
+#define CTAssert(Expr) static_assert(Expr, "Assertion failed: " #Expr)
 
-#define ARRAY_COUNT(array) (sizeof((array)) / sizeof((array)[0]))
-#define STRINGIFY(x) #x
+#ifdef __cplusplus
+extern "C++"
+{
+    template<typename _CountofType, size_t _SizeOfArray>
+    char (*__countof_helper(_UNALIGNED _CountofType (&_Array)[_SizeOfArray]))[_SizeOfArray];
+
+    #define CountOf(_Array) (sizeof(*__countof_helper(_Array)) + 0)
+}
+#else
+    #define CountOf(_Array) (sizeof(_Array) / sizeof(_Array[0]))
+#endif
+
+#define OffsetOf(type, member) (umm)&(((type *)0)->member
 
 namespace tom
 {
 struct ThreadContext
 {
     i32 place_holder;
-};
-
-struct WindowDims
-{
-    i32 width;
-    i32 height;
 };
 
 // Generic flag stuff
@@ -137,7 +198,6 @@ inline void clear_flags(i32& flags, i32 flag)
 
 inline u32 safe_truncate_u32_to_u64(u64 value)
 {
-    TOM_ASSERT(value <= U32_MAX);
     u32 result = (u32)value;
     return result;
 }
@@ -147,8 +207,6 @@ inline u32 safe_truncate_u32_to_u64(u64 value)
 #include "tom_math.hh"
 #include "tom_color.hh"
 #include "tom_memory.hh"
-#include "tom_utils.hh"
-#include "tom_vector.hh"
 #include "tom_string.hh"
 #include "tom_input.hh"
 #include "tom_time.hh"

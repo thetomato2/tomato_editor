@@ -3,53 +3,99 @@ namespace tom
 
 function void d3d_print_info_queue(GfxState* gfx)
 {
+    gfx->d3d_debug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL);
+
     szt msg_cnt = gfx->info_queue->GetNumStoredMessages();
 
     for (szt i = 0; i < msg_cnt; ++i) {
         szt msg_sz;
         gfx->info_queue->GetMessage(i, nullptr, &msg_sz);
-        D3D11_MESSAGE* msg = (D3D11_MESSAGE*)plat_malloc(msg_sz);  // TODO: create an arena for this
+        auto msg = (D3D11_MESSAGE*)plat_malloc(msg_sz);  // TODO: create an arena for this
         // TODO: basic logging system and/or colors
         if (SUCCEEDED(gfx->info_queue->GetMessage(i, msg, &msg_sz))) {
+            printf("D3D->");
             switch (msg->Severity) {
-                case D3D11_MESSAGE_SEVERITY_MESSAGE:
-                    printf("D3D MESSAGE-> %s\n", msg->pDescription);
-                    break;
-                case D3D11_MESSAGE_SEVERITY_INFO:
-                    printf("D3D INFO-> %s\n", msg->pDescription);
-                    break;
-                case D3D11_MESSAGE_SEVERITY_WARNING:
-                    printf("D3D WARNING-> %s\n", msg->pDescription);
-                    break;
-                case D3D11_MESSAGE_SEVERITY_CORRUPTION:
-                    printf("D3D CORRUPTION-> %s\n", msg->pDescription);
-                    break;
-                case D3D11_MESSAGE_SEVERITY_ERROR:
-                    printf("D3D ERROR-> %s\n", msg->pDescription);
-                    break;
-                default: printf("D3D: %s\n", msg->pDescription); break;
+                case D3D11_MESSAGE_SEVERITY_MESSAGE: PrintMessage(msg->pDescription); break;
+                case D3D11_MESSAGE_SEVERITY_INFO: PrintInfo(msg->pDescription); break;
+                case D3D11_MESSAGE_SEVERITY_WARNING: PrintWarning(msg->pDescription); break;
+                case D3D11_MESSAGE_SEVERITY_CORRUPTION: PrintCorruption(msg->pDescription); break;
+                case D3D11_MESSAGE_SEVERITY_ERROR: PrintError(msg->pDescription); break;
+                default: printf("%s\n", msg->pDescription); break;
             }
         }
         plat_free(msg);
     }
     gfx->info_queue->ClearStoredMessages();
+    msg_cnt = gfx->dxgi_info_queue->GetNumStoredMessages(DXGI_DEBUG_ALL);
+
+    for (szt i = 0; i < msg_cnt; ++i) {
+        szt msg_sz;
+        gfx->dxgi_info_queue->GetMessage(DXGI_DEBUG_ALL, i, nullptr, &msg_sz);
+        auto msg = (DXGI_INFO_QUEUE_MESSAGE*)plat_malloc(msg_sz);  // TODO: create an arena for this
+        if (SUCCEEDED(gfx->dxgi_info_queue->GetMessage(DXGI_DEBUG_ALL, i, msg, &msg_sz))) {
+            printf("DXGI->");
+            switch (msg->Severity) {
+                case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_MESSAGE:
+                    PrintMessage(msg->pDescription);
+                    break;
+                case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_INFO: PrintInfo(msg->pDescription); break;
+                case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_WARNING:
+                    PrintWarning(msg->pDescription);
+                    break;
+                case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION:
+                    PrintCorruption(msg->pDescription);
+                    break;
+                case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR: PrintError(msg->pDescription); break;
+                default: printf("%s\n", msg->pDescription); break;
+            }
+        }
+        plat_free(msg);
+    }
+    gfx->dxgi_info_queue->ClearStoredMessages(DXGI_DEBUG_ALL);
 }
 
-function void d3d_create_resources(GfxState* gfx, WindowDims win_dims)
+function void d3d_on_resize(GfxState* gfx, r2i win_dims)
 {
-    ID3D11RenderTargetView* null_views[] { nullptr };
-    gfx->context->OMSetRenderTargets(sizeof(null_views), null_views, nullptr);
+    ID3D11RenderTargetView* null_views[] = { nullptr };
+    gfx->context->OMSetRenderTargets(CountOf(null_views), null_views, nullptr);
     gfx->render_target_view->Release();
     gfx->depth_buf_view->Release();
+    // gfx->context->ClearState();
     gfx->context->Flush();
-}
 
-function void d3d_resize_buffers(GfxState* gfx)
-{
-    gfx->context->OMSetRenderTargets(0, 0, 0);
-    gfx->render_target_view->Release();
-    HRESULT hr = gfx->swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
-    TOM_ASSERT(SUCCEEDED(hr));
+    // d3d_Check(gfx->swap_chain->ResizeBuffers(0, win_dims.x1, win_dims.y1, DXGI_FORMAT_UNKNOWN,
+    //                                          DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT));
+
+    d3d_Check(gfx->swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN,
+                                             DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT));
+
+    ID3D11Texture2D* frame_buf;
+    d3d_Check(gfx->swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&frame_buf));
+
+    d3d_Check(gfx->device->CreateRenderTargetView(frame_buf, nullptr, &gfx->render_target_view));
+
+    D3D11_TEXTURE2D_DESC depth_buf_desc;
+    frame_buf->GetDesc(&depth_buf_desc);  // base on framebuffer properties
+    depth_buf_desc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depth_buf_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+    ID3D11Texture2D* depth_buf;
+    d3d_Check(gfx->device->CreateTexture2D(&depth_buf_desc, nullptr, &depth_buf));
+
+    d3d_Check(gfx->device->CreateDepthStencilView(depth_buf, nullptr, &gfx->depth_buf_view));
+    gfx->context->OMSetRenderTargets(1, &gfx->render_target_view, gfx->depth_buf_view);
+
+    depth_buf->Release();
+    frame_buf->Release();
+
+    gfx->viewport          = {};
+    gfx->viewport.Width    = (f32)win_dims.x1;
+    gfx->viewport.Height   = (f32)win_dims.y1;
+    gfx->viewport.TopLeftX = 0.0f;
+    gfx->viewport.TopLeftY = 0.0f;
+    gfx->viewport.MinDepth = 0.0f;
+    gfx->viewport.MaxDepth = 1.0f;
+    gfx->context->RSSetViewports(1, &gfx->viewport);
 }
 
 function ShaderProg d3d_create_shader_prog(GfxState* gfx, LPCWSTR path)
@@ -62,34 +108,34 @@ function ShaderProg d3d_create_shader_prog(GfxState* gfx, LPCWSTR path)
     ID3DBlob* err_msg_blob;
 
     auto print_error = [](const char* shader_type, ID3DBlob* err_msg) {
+        printf("==========================================================\n");
+        PrintRed("ERROR: ");
         printf(
-            "==========================================================\n"
-            "ERROR-> %s shader failed to compile!\n"
-            "%s\n"
-            "==========================================================\n",
+            "%s shader failed to "
+            "compile!\n%s\n==========================================================\n",
             shader_type, (char*)err_msg->GetBufferPointer());
     };
 
     if (SUCCEEDED(D3DCompileFromFile(path, nullptr, nullptr, "vs_main", "vs_5_0", flags, 0,
                                      &result.vs_blob, &err_msg_blob))) {
-        D3D_CHECK(gfx->device->CreateVertexShader(result.vs_blob->GetBufferPointer(),
+        d3d_Check(gfx->device->CreateVertexShader(result.vs_blob->GetBufferPointer(),
                                                   result.vs_blob->GetBufferSize(), nullptr,
                                                   &result.vs));
     } else {
         print_error("vertex", err_msg_blob);
         err_msg_blob->Release();
-        TOM_INVALID_CODE_PATH;
+        InvalidCodePath;
     }
 
     if (SUCCEEDED(D3DCompileFromFile(path, nullptr, nullptr, "ps_main", "ps_5_0", flags, 0,
                                      &result.ps_blob, &err_msg_blob))) {
-        D3D_CHECK(gfx->device->CreatePixelShader(result.ps_blob->GetBufferPointer(),
+        d3d_Check(gfx->device->CreatePixelShader(result.ps_blob->GetBufferPointer(),
                                                  result.ps_blob->GetBufferSize(), nullptr,
                                                  &result.ps));
     } else {
         print_error("pixel", err_msg_blob);
         err_msg_blob->Release();
-        TOM_INVALID_CODE_PATH;
+        InvalidCodePath;
     }
 
     return result;
@@ -112,35 +158,35 @@ function void d3d_init(HWND hwnd, GfxState* gfx)
                                  feature_levels, ARRAYSIZE(feature_levels), D3D11_SDK_VERSION,
                                  &base_device, nullptr, &base_device_context))) {
         printf("ERROR!-> Failed to create base D3D11 Base Device!");
-        TOM_INVALID_CODE_PATH;
+        InvalidCodePath;
     }
 
     ID3D11Device1* device;
     if (FAILED(base_device->QueryInterface(__uuidof(ID3D11Device1), (void**)&device))) {
         printf("ERROR!-> Failed to create D3D11 Device!");
-        TOM_INVALID_CODE_PATH;
+        InvalidCodePath;
     }
     ID3D11DeviceContext1* device_context;
     if (FAILED(base_device_context->QueryInterface(__uuidof(ID3D11DeviceContext1),
                                                    (void**)&device_context))) {
         printf("ERROR!-> Failed to create D3D11 Device Context!");
-        TOM_INVALID_CODE_PATH;
+        InvalidCodePath;
     }
 
     IDXGIDevice1* dxgi_device;
     if (FAILED(device->QueryInterface(__uuidof(IDXGIDevice1), (void**)&dxgi_device))) {
         printf("ERROR!-> Failed to create D3D11 DXGI Device!");
-        TOM_INVALID_CODE_PATH;
+        InvalidCodePath;
     }
     IDXGIAdapter* dxgi_adapter;
     if (FAILED(dxgi_device->GetAdapter(&dxgi_adapter))) {
         printf("ERROR!-> Failed to create D3D11 DXGI adapter!");
-        TOM_INVALID_CODE_PATH;
+        InvalidCodePath;
     }
     IDXGIFactory2* dxgi_factory;
     if (FAILED(dxgi_adapter->GetParent(__uuidof(IDXGIFactory2), (void**)&dxgi_factory))) {
         printf("ERROR!-> Failed to create D3D11 DXGI Factory!");
-        TOM_INVALID_CODE_PATH;
+        InvalidCodePath;
     }
 
 #ifdef TOM_INTERNAL
@@ -150,21 +196,42 @@ function void d3d_init(HWND hwnd, GfxState* gfx)
         if (SUCCEEDED(device->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&info_queue))) {
             info_queue->SetBreakOnSeverity((D3D11_MESSAGE_SEVERITY_CORRUPTION), true);
             info_queue->SetBreakOnSeverity((D3D11_MESSAGE_SEVERITY_ERROR), true);
-            D3D11_MESSAGE_ID hide[] { D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS };
-            D3D11_INFO_QUEUE_FILTER filter {};
-            filter.DenyList.NumIDs  = (u32)ARRAY_COUNT(hide);
-            filter.DenyList.pIDList = hide;
-            info_queue->AddStorageFilterEntries(&filter);
+            // D3D11_MESSAGE_ID hide[] { D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS };
+            // D3D11_INFO_QUEUE_FILTER filter {};
+            // filter.DenyList.NumIDs  = (u32)CountOf(hide);
+            // filter.DenyList.pIDList = hide;
+            // info_queue->AddStorageFilterEntries(&filter);
+            info_queue->PushEmptyStorageFilter();
             gfx->info_queue = info_queue;
         } else {
-            printf("ERROR!-> Failed to create D3D11 Info Queue!");
-            TOM_INVALID_CODE_PATH;
+            PrintError("Failed to create D3D11 Info Queue!");
+            InvalidCodePath;
         }
+        gfx->d3d_debug = d3d_debug;
 
     } else {
         printf("ERROR!-> Failed to create D3D11 debug context!");
-        TOM_INVALID_CODE_PATH;
+        InvalidCodePath;
     }
+
+    HMODULE dxgidebug = LoadLibraryExW(L"dxgidebug.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (dxgidebug) {
+        IDXGIInfoQueue* dxgi_info_queue;
+        auto dxgiGetDebugInterface = reinterpret_cast<LPDXGIGETDEBUGINTERFACE>(
+            reinterpret_cast<void*>(GetProcAddress(dxgidebug, "DXGIGetDebugInterface")));
+        if (SUCCEEDED(dxgiGetDebugInterface(__uuidof(IDXGIInfoQueue), (void**)&dxgi_info_queue))) {
+            // dxgi_info_queue->SetBreakOnSeverity(DXGI_DEBUG_ALL,
+            //                                     DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
+            // dxgi_info_queue->SetBreakOnSeverity(DXGI_DEBUG_ALL,
+            //                                     DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION,
+            //                                     true);
+            gfx->dxgi_info_queue = dxgi_info_queue;
+        } else {
+            PrintError("Failed to crate DXGI Info Queue!");
+            InvalidCodePath;
+        }
+    }
+
 #endif
 
     DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {
@@ -176,8 +243,10 @@ function void d3d_init(HWND hwnd, GfxState* gfx)
         .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
         .BufferCount = 2,
         .Scaling     = DXGI_SCALING_STRETCH,
-        .SwapEffect  = DXGI_SWAP_EFFECT_DISCARD,
-        .AlphaMode   = DXGI_ALPHA_MODE_UNSPECIFIED,
+        .SwapEffect  = DXGI_SWAP_EFFECT_FLIP_DISCARD,
+        // .SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+        .AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED,
+        .Flags     = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
     };
 
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC full_screen_desc = {};
@@ -186,15 +255,15 @@ function void d3d_init(HWND hwnd, GfxState* gfx)
     full_screen_desc.Windowed                        = true;
 
     IDXGISwapChain1* swap_chain;
-    D3D_CHECK(dxgi_factory->CreateSwapChainForHwnd(device, hwnd, &swap_chain_desc,
+    d3d_Check(dxgi_factory->CreateSwapChainForHwnd(device, hwnd, &swap_chain_desc,
                                                    &full_screen_desc, nullptr, &swap_chain));
     dxgi_factory->Release();
 
     ID3D11Texture2D* frame_buf;
-    D3D_CHECK(swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&frame_buf));
+    d3d_Check(swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&frame_buf));
 
     ID3D11RenderTargetView* render_target_view;
-    D3D_CHECK(device->CreateRenderTargetView(frame_buf, nullptr, &render_target_view));
+    d3d_Check(device->CreateRenderTargetView(frame_buf, nullptr, &render_target_view));
 
     D3D11_TEXTURE2D_DESC depth_buf_desc;
     frame_buf->GetDesc(&depth_buf_desc);  // base on framebuffer properties
@@ -202,10 +271,13 @@ function void d3d_init(HWND hwnd, GfxState* gfx)
     depth_buf_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
     ID3D11Texture2D* depth_buf;
-    D3D_CHECK(device->CreateTexture2D(&depth_buf_desc, nullptr, &depth_buf));
+    d3d_Check(device->CreateTexture2D(&depth_buf_desc, nullptr, &depth_buf));
 
     ID3D11DepthStencilView* depth_buf_view;
-    D3D_CHECK(device->CreateDepthStencilView(depth_buf, nullptr, &depth_buf_view));
+    d3d_Check(device->CreateDepthStencilView(depth_buf, nullptr, &depth_buf_view));
+
+    depth_buf->Release();
+    frame_buf->Release();
 
     D3D11_RENDER_TARGET_BLEND_DESC rtbd = { .BlendEnable           = true,
                                             .SrcBlend              = D3D11_BLEND_SRC_ALPHA,
@@ -218,7 +290,7 @@ function void d3d_init(HWND hwnd, GfxState* gfx)
 
     D3D11_BLEND_DESC blend_desc = {};
     blend_desc.RenderTarget[0]  = rtbd;
-    D3D_CHECK(device->CreateBlendState(&blend_desc, &gfx->blend_state));
+    d3d_Check(device->CreateBlendState(&blend_desc, &gfx->blend_state));
 
     float blend_factor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
     UINT sample_mask      = 0xffffffff;
@@ -228,7 +300,7 @@ function void d3d_init(HWND hwnd, GfxState* gfx)
                                              .CullMode = D3D11_CULL_BACK };
 
     ID3D11RasterizerState1* rasterizer_state;
-    D3D_CHECK(device->CreateRasterizerState1(&rasterizer_desc, &rasterizer_state));
+    d3d_Check(device->CreateRasterizerState1(&rasterizer_desc, &rasterizer_state));
 
     D3D11_SAMPLER_DESC sampler_desc { .Filter         = D3D11_FILTER_MIN_MAG_MIP_POINT,
                                       .AddressU       = D3D11_TEXTURE_ADDRESS_WRAP,
@@ -237,17 +309,17 @@ function void d3d_init(HWND hwnd, GfxState* gfx)
                                       .ComparisonFunc = D3D11_COMPARISON_NEVER };
 
     ID3D11SamplerState* sampler_state;
-    D3D_CHECK(device->CreateSamplerState(&sampler_desc, &sampler_state));
+    d3d_Check(device->CreateSamplerState(&sampler_desc, &sampler_state));
     gfx->sampler_state = sampler_state;
 
     D3D11_DEPTH_STENCIL_DESC depth_stencil_desc { .DepthEnable    = TRUE,
                                                   .DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL,
                                                   // NOTE: turned off depth culling
-                                                  .DepthFunc      = D3D11_COMPARISON_ALWAYS,
-                                                  .StencilEnable  = FALSE };
+                                                  .DepthFunc     = D3D11_COMPARISON_ALWAYS,
+                                                  .StencilEnable = FALSE };
 
     ID3D11DepthStencilState* depth_stencil_state;
-    D3D_CHECK(device->CreateDepthStencilState(&depth_stencil_desc, &depth_stencil_state));
+    d3d_Check(device->CreateDepthStencilState(&depth_stencil_desc, &depth_stencil_state));
 
     gfx->device              = device;
     gfx->context             = device_context;

@@ -11,15 +11,29 @@
 #define TEXTURE_INSTANCE_DATA_TOTAL_SIZE_IN_BYTES \
     MAX_TEXTURE_COUNT* SIZE_OF_TEXTURE_INSTANCE_IN_BYTES
 
+struct TOM_GUID
+{
+    u32 Data1;
+    u16 Data2;
+    u16 Data3;
+    u8 Data4[8];
+};
+
+// #define TOM_DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) const GUID FAR name
+
+// TOM_DEFINE_GUID(DXGI_DEBUG_ALL, 0xe48ae283, 0xda80, 0x490b, 0x87, 0xe6, 0x43, 0xe9, 0xa9, 0xcf,
+//                 0xda, 0x8);
+
 #ifdef TOM_INTERNAL
-    #define D3D_CHECK(x)                                                      \
-        {                                                                     \
-            if (FAILED(x)) {                                                  \
-                ScopedPtr<char> hr_err = d3d_error_code(x);                   \
-                printf("ERROR-> DirectX Check Failed! - %s\n", hr_err.get()); \
-                d3d_print_info_queue(gfx);                                    \
-                TOM_INVALID_CODE_PATH;                                        \
-            }                                                                 \
+    #define d3d_Check(x)                                              \
+        {                                                             \
+            if (FAILED(x)) {                                          \
+                ScopedPtr<char> hr_err = d3d_error_code(x);           \
+                PrintRed("ERROR: ");                                  \
+                printf("DirectX Check Failed! - %s\n", hr_err.get()); \
+                d3d_print_info_queue(gfx);                            \
+                InvalidCodePath;                                      \
+            }                                                         \
         }
 #else
     #define D3D_CHECK(x)
@@ -32,7 +46,7 @@ struct d3d_Constants
 {
     m4 transform;
     m4 projection;
-    v3 light_v3;
+    v3f light_v3;
 };
 
 struct ShaderProg
@@ -56,6 +70,10 @@ struct GfxState
     ID3D11SamplerState* sampler_state;
     ID3D11BlendState* blend_state;
     D3D11_VIEWPORT viewport;
+#ifdef TOM_INTERNAL
+    ID3D11Debug* d3d_debug;
+    IDXGIInfoQueue* dxgi_info_queue;
+#endif
 };
 
 // pos, col
@@ -63,8 +81,8 @@ union Vertex
 {
     struct
     {
-        v4 pos;
-        v2 uv;
+        v4f pos;
+        v2f uv;
     };
     f32 e[6];
 };

@@ -1,13 +1,14 @@
-namespace tom {
-    
+namespace tom
+{
+
 function void camera_init_angle(Camera* cam)
 {
 #if Z_UP
-    v3 h_target = vec_normalize({ cam->forward.x, 0.0f, cam->forward.z });
-    f32 angle   = to_degree(asin(abs(h_target.z)));
+    v3f h_target = vec_normalize({ cam->forward.x, 0.0f, cam->forward.z });
+    f32 angle    = to_degree(asin(abs(h_target.z)));
 #else
-    v3 h_target = vec_normalize({ cam->forward.x, 0.0f, -cam->forward.y });
-    f32 angle   = to_degree(asin(abs(-h_target.y)));
+    v3f h_target = vec_normalize({ cam->forward.x, 0.0f, -cam->forward.y });
+    f32 angle    = to_degree(asin(abs(-h_target.y)));
 #endif
 
     if (h_target.z >= 0.0f) {
@@ -47,7 +48,7 @@ function Camera camera_init()
     return result;
 }
 
-function Camera camera_init(v3 pos, v3 forward, v3 up)
+function Camera camera_init(v3f pos, v3f forward, v3f up)
 {
     Camera result = camera_default_init();
 
@@ -60,7 +61,7 @@ function Camera camera_init(v3 pos, v3 forward, v3 up)
     return result;
 }
 
-function Camera camera_init_no_angle(v3 pos, v3 forward, v3 up)
+function Camera camera_init_no_angle(v3f pos, v3f forward, v3f up)
 {
     Camera result = camera_default_init();
 
@@ -88,15 +89,15 @@ function void move_camera(Camera* cam, Cam_Move_Dir dir, f32 dt)
             cam->pos.y -= cam->speed * dt;
         } break;
         case Cam_Move_Dir::right: {
-            v3 res = vec_cross(cam->up, cam->forward);
-            res    = vec_normalize(res);
+            v3f res = vec_cross(cam->up, cam->forward);
+            res     = vec_normalize(res);
             res *= cam->speed * dt;
             cam->pos += res;
 
         } break;
         case Cam_Move_Dir::left: {
-            v3 res = vec_cross(cam->forward, cam->up);
-            res    = vec_normalize(res);
+            v3f res = vec_cross(cam->forward, cam->up);
+            res     = vec_normalize(res);
             res *= cam->speed * dt;
             cam->pos += res;
         } break;
@@ -121,15 +122,15 @@ function void move_camera_distance(Camera* cam, Cam_Move_Dir dir, f32 dist)
             cam->pos.y -= dist;
         } break;
         case Cam_Move_Dir::right: {
-            v3 res = vec_cross(cam->up, cam->forward);
-            res    = vec_normalize(res);
+            v3f res = vec_cross(cam->up, cam->forward);
+            res     = vec_normalize(res);
             res *= dist;
             cam->pos += res;
 
         } break;
         case Cam_Move_Dir::left: {
-            v3 res = vec_cross(cam->forward, cam->up);
-            res    = vec_normalize(res);
+            v3f res = vec_cross(cam->forward, cam->up);
+            res     = vec_normalize(res);
             res *= dist;
             cam->pos += res;
         } break;
@@ -160,16 +161,16 @@ function void pan_camera(Camera* cam, Cam_Move_Dir dir, f32 dt)
             cam->target_pos.y -= new_speed * dt;
         } break;
         case Cam_Move_Dir::right: {
-            v3 res = vec_cross(cam->up, cam->forward);
-            res    = vec_normalize(res);
+            v3f res = vec_cross(cam->up, cam->forward);
+            res     = vec_normalize(res);
             res *= new_speed * dt;
             cam->pos += res;
             cam->target_pos += res;
 
         } break;
         case Cam_Move_Dir::left: {
-            v3 res = vec_cross(cam->forward, cam->up);
-            res    = vec_normalize(res);
+            v3f res = vec_cross(cam->forward, cam->up);
+            res     = vec_normalize(res);
             res *= cam->speed * dt;
             cam->pos += res;
             cam->target_pos += res;
@@ -179,20 +180,20 @@ function void pan_camera(Camera* cam, Cam_Move_Dir dir, f32 dt)
     }
 }
 
-function void mouse_look_cam(Camera* cam, Mouse ms, WindowDims win_dims)
+function void mouse_look_cam(Camera* cam, Mouse ms, r2i win_dims)
 {
-    v2 ms_delta = ms.get_delta();
-    if (ms.pos.x < 0.0f || ms.pos.x > (f32) win_dims.width || ms.pos.u < 0.0f ||
-        ms.pos.y > (f32)win_dims.height)
+    v2f ms_delta = ms.get_delta();
+    if (ms.pos.x < 0.0f || ms.pos.x > (f32)win_dims.x1 || ms.pos.u < 0.0f ||
+        ms.pos.y > (f32)win_dims.y1)
         ms_delta = {};
 
     f32 angle_h = ms_delta.x / 20.0f;
 
     f32 angle_v = ms_delta.y / 20.0f;
 
-    v3 n = vec_normalize(cam->forward);
-    v3 u = vec_normalize(vec_cross(cam->up, n));
-    v3 v = vec_cross(n, u);
+    v3f n = vec_normalize(cam->forward);
+    v3f u = vec_normalize(vec_cross(cam->up, n));
+    v3f v = vec_cross(n, u);
 
     if (key_down(ms.l)) {
         cam->forward = quat_rotate(cam->forward, u, angle_v);
@@ -201,14 +202,14 @@ function void mouse_look_cam(Camera* cam, Mouse ms, WindowDims win_dims)
     // cam.target = qua::rotate(cam.target, cam.up, 1.0f);
 }
 
-function void orbit_cam(Camera* cam, Keyboard kb, Mouse ms, WindowDims win_dims,
-                        f32* dist = nullptr, v3* target_pos = nullptr)
+function void orbit_cam(Camera* cam, Keyboard kb, Mouse ms, r2i win_dims, f32* dist = nullptr,
+                        v3f* target_pos = nullptr)
 {
     if (target_pos) cam->target_pos = *target_pos;
 
-    v2 ms_delta = ms.get_delta();
-    if (ms.pos.x < 0.0f || ms.pos.x > (f32)win_dims.width || ms.pos.u < 0.0f ||
-        ms.pos.y > (f32)win_dims.height)
+    v2f ms_delta = ms.get_delta();
+    if (ms.pos.x < 0.0f || ms.pos.x > (f32)win_dims.x1 || ms.pos.u < 0.0f ||
+        ms.pos.y > (f32)win_dims.y1)
         ms_delta = {};
 
     f32 d1;
@@ -223,25 +224,25 @@ function void orbit_cam(Camera* cam, Keyboard kb, Mouse ms, WindowDims win_dims,
 
     if (key_down(ms.m)) {
         if (ms_delta.x > 0.0f) {
-            f32 spd         = abs(ms_delta.x) * mouse_sens;
+            f32 spd          = abs(ms_delta.x) * mouse_sens;
             Cam_Move_Dir dir = Cam_Move_Dir::left;
             key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
         }
 
         if (ms_delta.x < 0.0f) {
-            f32 spd         = abs(ms_delta.x) * mouse_sens;
+            f32 spd          = abs(ms_delta.x) * mouse_sens;
             Cam_Move_Dir dir = Cam_Move_Dir::right;
             key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
         }
 
         if (ms_delta.y > 0.0f) {
-            f32 spd         = abs(ms_delta.y) * mouse_sens;
+            f32 spd          = abs(ms_delta.y) * mouse_sens;
             Cam_Move_Dir dir = Cam_Move_Dir::up;
             key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
         }
 
         if (ms_delta.y < 0.0f) {
-            f32 spd         = abs(ms_delta.y) * mouse_sens;
+            f32 spd          = abs(ms_delta.y) * mouse_sens;
             Cam_Move_Dir dir = Cam_Move_Dir::down;
             key_down(kb.left_shift) ? pan_camera(cam, dir, spd) : move_camera(cam, dir, spd);
         }
@@ -271,7 +272,7 @@ function void orbit_cam(Camera* cam, Keyboard kb, Mouse ms, WindowDims win_dims,
     }
 }
 
-function void camera_look_at(Camera* cam, v3 target_pos)
+function void camera_look_at(Camera* cam, v3f target_pos)
 {
     cam->target_pos = target_pos;
 
@@ -281,9 +282,9 @@ function void camera_look_at(Camera* cam, v3 target_pos)
     cam->forward = vec_normalize(cam->pos - cam->target_pos);
     f32 d2       = vec_distance(cam->pos, cam->target_pos);
 
-    v3 n = vec_normalize(cam->forward);
-    v3 u = vec_normalize(vec_cross(cam->up, n));
-    v3 v = vec_cross(n, u);
+    v3f n = vec_normalize(cam->forward);
+    v3f u = vec_normalize(vec_cross(cam->up, n));
+    v3f v = vec_cross(n, u);
 
     cam->up = v;
 
@@ -301,9 +302,9 @@ function void camera_look_at(Camera* cam, v3 target_pos)
 function m4 camera_view(Camera cam)
 {
 #if 0
-    v3 n = vec_normalize(cam.forward);
-    v3 u = vec_normalize(vec::cross(cam.up, n));
-    v3 v = vec_cross(n, u);
+    v3f n = vec_normalize(cam.forward);
+    v3f u = vec_normalize(vec::cross(cam.up, n));
+    v3f v = vec_cross(n, u);
 
     m4 result = mat_row_3x3(u, v, n);
     result    = mat_translate(result, cam.pos);
@@ -317,7 +318,7 @@ function m4 camera_view(Camera cam)
 #endif
 }
 
-function void camera_set_pos(Camera* cam, v3 pos)
+function void camera_set_pos(Camera* cam, v3f pos)
 {
 #if Z_UP
     cam->pos.x = pos.x;
@@ -328,7 +329,7 @@ function void camera_set_pos(Camera* cam, v3 pos)
 #endif
 }
 
-function v3 camera_get_pos(Camera* cam)
+function v3f camera_get_pos(Camera* cam)
 {
 #if Z_UP
     return { cam->pos.x, -cam->pos.z, cam->pos.y };
@@ -337,4 +338,4 @@ function v3 camera_get_pos(Camera* cam)
 #endif
 }
 
-}
+}  // namespace tom

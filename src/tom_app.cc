@@ -18,7 +18,7 @@ global ID3D11Texture2D* g_tex;
 global ID3D11ShaderResourceView* g_sha_rsc_view;
 global szt g_ind_cnt;
 
-global v3 g_start_pos = { -1.0f, 0.52f, 0.0f };
+global v3f g_start_pos = { -1.0f, 0.52f, 0.0f };
 
 struct TextAtrribs
 {
@@ -30,20 +30,28 @@ struct TextAtrribs
 
 TextAtrribs g_text_attribs;
 global constexpr f32 g_scale_inc = 0.002f;
+global f32 g_key_repeat_timer    = 0.0f;
 
-// global char g_text_buf[2048]  = {};
-global Vector<char> g_text_buf(512);
-global u32 g_text_i           = 0;
-global f32 g_key_repeat_timer = 0.0f;
-global Vector<Win32Key> g_skip_keys;
+global constexpr szt g_text_buf_sz = 10000;
+global char* g_text_buf            = (char*)plat_malloc(g_text_buf_sz);
+global u32 g_text_i                = 0;
+
+global Win32Key g_skip_keys[] = { Win32Key::left_shift, Win32Key::left_alt, Win32Key::back,
+                                  Win32Key::add,        Win32Key::subtract, Win32Key::left,
+                                  Win32Key::up,         Win32Key::right,    Win32Key::down,
+                                  Win32Key::f1,         Win32Key::f2,       Win32Key::f3,
+                                  Win32Key::f4,         Win32Key::f5,       Win32Key::f6,
+                                  Win32Key::f7,         Win32Key::f8,       Win32Key::f9,
+                                  Win32Key::f10,        Win32Key::f11,      Win32Key::f12 };
+
 struct ConstBuf
 {
     m4 proj;
     m4 model;
-    v4 text_col;
-    v2 tex_sz;
-    v2 uv_off;
-    v2 i_cnt;
+    v4f text_col;
+    v2f tex_sz;
+    v2f uv_off;
+    v2f i_cnt;
     f32 uv_r;
     i32 glyph_all;
 };
@@ -61,8 +69,9 @@ function TextAtrribs set_text_attribs_from_scale(f32 scale)
 
 function void on_resize(AppState* state)
 {
-    f32 aspect = (f32)state->win32.win_dims.width / (f32)state->win32.win_dims.height;
+    f32 aspect = (f32)state->win32.win_dims.x1 / (f32)state->win32.win_dims.y1;
     // state->proj = mat_proj_persp(aspect, state->fov, 1.0f, 1000.0f);
+    d3d_on_resize(&state->gfx, state->win32.win_dims);
     state->proj = mat_proj_ortho(aspect);
 }
 
@@ -70,9 +79,10 @@ function void app_init(AppState* state)
 {
     auto gfx = &state->gfx;
 
-    state->fov              = 1.0f;
-    state->clear_color      = { 0.086f, 0.086f, 0.086f, 1.0f };
-    state->text_color       = { 0.627f, 0.521f, 0.388f, 1.0f };
+    state->fov = 1.0f;
+    // state->clear_color      = { 0.086f, 0.086f, 0.086f, 1.0f };
+    state->clear_color      = { 0.047f, 0.047f, 0.047f, 1.0f };
+    state->text_color      = { 0.686f, 0.686f, 0.686f, 1.0f };
     state->vars.unit        = 1.0f;
     state->view             = mat_identity();
     state->key_repeat_delay = 0.2f;
@@ -103,8 +113,8 @@ function void app_init(AppState* state)
           D3D11_INPUT_PER_VERTEX_DATA, 0 }
     };
 
-    D3D_CHECK(gfx->device->CreateInputLayout(
-        input_desc, _countof(input_desc), state->main_shader.vs_blob->GetBufferPointer(),
+    d3d_Check(gfx->device->CreateInputLayout(
+        input_desc, CountOf(input_desc), state->main_shader.vs_blob->GetBufferPointer(),
         state->main_shader.vs_blob->GetBufferSize(), &g_input_layout));
 
     D3D11_BUFFER_DESC vert_buf_desc         = { .ByteWidth = sizeof(verts.e),
@@ -112,15 +122,15 @@ function void app_init(AppState* state)
                                                 .BindFlags = D3D11_BIND_VERTEX_BUFFER };
     D3D11_SUBRESOURCE_DATA vert_subrsc_data = { .pSysMem = verts.e };
 
-    D3D_CHECK(gfx->device->CreateBuffer(&vert_buf_desc, &vert_subrsc_data, &g_vert_buf));
+    d3d_Check(gfx->device->CreateBuffer(&vert_buf_desc, &vert_subrsc_data, &g_vert_buf));
 
     D3D11_BUFFER_DESC ind_buf_desc         = { .ByteWidth = sizeof(inds),
                                                .Usage     = D3D11_USAGE_DEFAULT,
                                                .BindFlags = D3D11_BIND_INDEX_BUFFER };
     D3D11_SUBRESOURCE_DATA ind_subrsc_data = { .pSysMem = inds };
 
-    D3D_CHECK(gfx->device->CreateBuffer(&ind_buf_desc, &ind_subrsc_data, &g_ind_buf));
-    g_ind_cnt = _countof(inds);
+    d3d_Check(gfx->device->CreateBuffer(&ind_buf_desc, &ind_subrsc_data, &g_ind_buf));
+    g_ind_cnt = CountOf(inds);
 
 #define BUILD_FONT_TABLE 1
 
@@ -152,13 +162,13 @@ function void app_init(AppState* state)
         D3D11_SUBRESOURCE_DATA tex_subrsc_data = { .pSysMem          = (void*)data,
                                                    .SysMemPitch      = width * sizeof(byt),
                                                    .SysMemSlicePitch = 0 };
-        D3D_CHECK(gfx->device->CreateTexture2D(&tex_desc, &tex_subrsc_data, &g_tex));
+        d3d_Check(gfx->device->CreateTexture2D(&tex_desc, &tex_subrsc_data, &g_tex));
     } else {
         printf("ERROR-> failed to load %s!\n", font_glyph_table);
-        TOM_INVALID_CODE_PATH;
+        InvalidCodePath;
     }
 
-    D3D_CHECK(gfx->device->CreateShaderResourceView(g_tex, nullptr, &g_sha_rsc_view));
+    d3d_Check(gfx->device->CreateShaderResourceView(g_tex, nullptr, &g_sha_rsc_view));
 
     // NOTE: cosntant buffers must be 16 byte aligned!!!
     D3D11_BUFFER_DESC const_buf_desc = { .ByteWidth =
@@ -166,30 +176,9 @@ function void app_init(AppState* state)
                                          .Usage          = D3D11_USAGE_DYNAMIC,
                                          .BindFlags      = D3D11_BIND_CONSTANT_BUFFER,
                                          .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE };
-    D3D_CHECK(gfx->device->CreateBuffer(&const_buf_desc, 0, &g_const_buf));
+    d3d_Check(gfx->device->CreateBuffer(&const_buf_desc, 0, &g_const_buf));
 
     g_text_attribs = set_text_attribs_from_scale(0.035f);
-
-    g_skip_keys.emplace_back(Win32Key::left_shift);
-    g_skip_keys.emplace_back(Win32Key::back);
-    g_skip_keys.emplace_back(Win32Key::add);
-    g_skip_keys.emplace_back(Win32Key::subtract);
-    g_skip_keys.emplace_back(Win32Key::left);
-    g_skip_keys.emplace_back(Win32Key::up);
-    g_skip_keys.emplace_back(Win32Key::right);
-    g_skip_keys.emplace_back(Win32Key::down);
-    g_skip_keys.emplace_back(Win32Key::f1);
-    g_skip_keys.emplace_back(Win32Key::f2);
-    g_skip_keys.emplace_back(Win32Key::f3);
-    g_skip_keys.emplace_back(Win32Key::f4);
-    g_skip_keys.emplace_back(Win32Key::f5);
-    g_skip_keys.emplace_back(Win32Key::f6);
-    g_skip_keys.emplace_back(Win32Key::f7);
-    g_skip_keys.emplace_back(Win32Key::f8);
-    g_skip_keys.emplace_back(Win32Key::f9);
-    g_skip_keys.emplace_back(Win32Key::f10);
-    g_skip_keys.emplace_back(Win32Key::f11);
-    g_skip_keys.emplace_back(Win32Key::f12);
 }
 
 function void app_update(AppState* state)
@@ -221,6 +210,7 @@ function void app_update(AppState* state)
         once_only = true;
     }
 
+    gfx->context->OMSetRenderTargets(1, &gfx->render_target_view, gfx->depth_buf_view);
     gfx->context->ClearRenderTargetView(gfx->render_target_view, state->clear_color.e);
     gfx->context->ClearDepthStencilView(gfx->depth_buf_view,
                                         D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
@@ -231,9 +221,8 @@ function void app_update(AppState* state)
         auto key = kb->keys[i];
 
         for (auto k : g_skip_keys) {
-            if (key.name == k) continue;
+            if (key.name == k) goto cnt;
         }
-
         if (key_pressed(key)) {
             char c = '\0';
             if (key_down(kb->left_shift)) {
@@ -241,36 +230,42 @@ function void app_update(AppState* state)
             } else {
                 c = win32key_to_char(key.name);
             }
-            if (c) g_text_buf.push_back(c);
+            if (c) g_text_buf[g_text_i] = c;
+            if (g_text_i < g_text_buf_sz) ++g_text_i;
         }
 
-        f32 tc = state->dt * (f32)key.half_transition_cnt;
-        if (tc > state->key_repeat_delay && g_key_repeat_timer > state->key_repeat_speed) {
-            char c = '\0';
-            if (key_down(kb->left_shift)) {
-                c = win32key_to_char_mod(key.name);
-            } else {
-                c = win32key_to_char(key.name);
+        {  // NOTE: lol so gotos can't skip variable declaratiosn even if YOU DON'T FUCKING USE IT
+           // AFTER THE GOTO
+            f32 tc = state->dt * (f32)key.half_transition_cnt;
+            if (tc > state->key_repeat_delay && g_key_repeat_timer > state->key_repeat_speed) {
+                char c = '\0';
+                if (key_down(kb->left_shift)) {
+                    c = win32key_to_char_mod(key.name);
+                } else {
+                    c = win32key_to_char(key.name);
+                }
+                if (c) g_text_buf[g_text_i] = c;
+                if (g_text_i < g_text_buf_sz) ++g_text_i;
+                g_key_repeat_timer = 0.0f;
             }
-            if (c) g_text_buf.push_back(c);
-            g_key_repeat_timer = 0.0f;
         }
+    cnt:;
     }
-
-    if (key_pressed(kb->back)) g_text_buf.pop_back();
 
     if (key_pressed(kb->f1)) {
         auto file_result = read_file("./data/alice29.txt");
         char* ptr        = (char*)file_result.contents;
-        // for (szt i = 0; i < file_result.size; ++i) {
-        for (szt i = 0; i < 10000; ++i) {
-            g_text_buf.push_back(ptr[i]);
+        for (szt i = 0; i < 3000; ++i) {
+            g_text_buf[g_text_i] = ptr[i];
+            if (g_text_i < g_text_buf_sz) ++g_text_i;
         }
     }
 
+    if (key_pressed(kb->back) && g_text_i > 0) --g_text_i;
     f32 tc = state->dt * (f32)state->input.keyboard.back.half_transition_cnt;
-    if (tc > state->key_repeat_delay && g_key_repeat_timer > state->key_repeat_speed) {
-        g_text_buf.pop_back();
+    if (tc > state->key_repeat_delay && g_key_repeat_timer > state->key_repeat_speed &&
+        g_text_i > 0) {
+        --g_text_i;
         g_key_repeat_timer = 0.0f;
     }
 
@@ -307,9 +302,9 @@ function void app_update(AppState* state)
 
     state->wvp = state->view * state->proj;
 
-    for (auto c : g_text_buf) {
-        glyph_ind = get_glyph_index(c);
-        if (c == '\n') {
+    for (szt i = 0; i < g_text_i; ++i) {
+        glyph_ind = get_glyph_index(g_text_buf[i]);
+        if (g_text_buf[i] == '\n') {
             model = mat_set_translation_x(model, g_start_pos.x);
             model = mat_translate_y(model, -g_text_attribs.y_step);
             continue;
@@ -326,7 +321,7 @@ function void app_update(AppState* state)
             .glyph_all = false
         };
         D3D11_MAPPED_SUBRESOURCE mapped_resrc;
-        D3D_CHECK(gfx->context->Map(g_const_buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resrc));
+        d3d_Check(gfx->context->Map(g_const_buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resrc));
         memcpy(mapped_resrc.pData, &mapped_buf, sizeof(ConstBuf));
         gfx->context->Unmap(g_const_buf, 0);
 
@@ -339,10 +334,10 @@ function void app_update(AppState* state)
         }
     }
 
-    D3D_CHECK(gfx->swap_chain->Present(1, 0));
+    d3d_Check(gfx->swap_chain->Present(1, 0));
 
 #ifdef TOM_INTERNAL
-    d3d_print_info_queue(gfx);
+    if (key_pressed(kb->f3)) d3d_print_info_queue(gfx);
 #endif
 }  // namespace tom
 
@@ -354,8 +349,9 @@ function i32 app_start(HINSTANCE hinst)
 
     create_console();
     auto cons_hwnd = GetConsoleWindow();
-    TOM_ASSERT(cons_hwnd);
+    Assert(cons_hwnd);
     SendMessage(cons_hwnd, WM_SETICON, NULL, (LPARAM)icon);
+    SetConsoleColor(FG_WHITE);
 
     printf("Starting...\n");
 
@@ -363,7 +359,7 @@ function i32 app_start(HINSTANCE hinst)
     printf("Exceptions are enabled!\n");
 #endif
 
-    AppState state {};
+    AppState state                      = {};
     state.game_update_hertz             = 60;
     state.target_frames_per_second      = 1.0f / (f32)state.game_update_hertz;
     state.target_fps                    = 60;
@@ -414,17 +410,17 @@ function i32 app_start(HINSTANCE hinst)
     QueryPerformanceFrequency(&performance_query_result);
     state.performance_counter_frequency = performance_query_result.QuadPart;
 
-    state.win32.win_dims.width  = 1600;
-    state.win32.win_dims.height = 900;
+    state.win32.win_dims.x1 = 1600;
+    state.win32.win_dims.y1 = 900;
 
 #ifdef TOM_INTERNAL
-    LPVOID base_address = (LPVOID)TERABYTES((u64)2);
+    LPVOID base_address = (LPVOID)Terabytes((u64)2);
 #else
     LPVOID base_address          = 0;
 #endif
 
-    state.memory.permanent_storage_size = MEGABYTES(256);
-    state.memory.transient_storage_size = GIGABYTES(256);
+    state.memory.permanent_storage_size = Megabytes(256);
+    state.memory.transient_storage_size = Gigabytes(256);
     state.total_size = state.memory.permanent_storage_size + state.memory.transient_storage_size;
     // TODO: use large pages
     state.memory_block =
@@ -433,19 +429,20 @@ function i32 app_start(HINSTANCE hinst)
     state.memory.transient_storage =
         (u8*)state.memory.permanent_storage + state.memory.permanent_storage_size;
 
+    prevent_windows_DPI_scaling();
     create_window(&state.win32);
     state.dpi = (u32)GetDpiForWindow(state.win32.hwnd);
-    SetCursorPos(state.win32.win_dims.width / 2, state.win32.win_dims.height / 2);
+    SetCursorPos(state.win32.win_dims.x1 / 2, state.win32.win_dims.y1 / 2);
 
     d3d_init(state.win32.hwnd, &state.gfx);
 
     state.gfx.viewport          = {};
-    state.gfx.viewport.Width    = state.win32.win_dims.width;
-    state.gfx.viewport.Height   = state.win32.win_dims.height;
+    state.gfx.viewport.Width    = (f32)state.win32.win_dims.x1;
+    state.gfx.viewport.Height   = (f32)state.win32.win_dims.y1;
     state.gfx.viewport.TopLeftX = 0.0f;
     state.gfx.viewport.TopLeftY = 0.0f;
     state.gfx.viewport.MinDepth = 0.0f;
-    state.gfx.viewport.MaxDepth = 0.0f;
+    state.gfx.viewport.MaxDepth = 1.0f;
 
     i64 last_counter     = get_time();
     u64 last_cycle_count = __rdtsc();
@@ -490,17 +487,17 @@ function i32 app_start(HINSTANCE hinst)
         app_update(&state);
 
         f32 work_secs_avg = 0.0f;
-        for (u32 i = 0; i < ARRAY_COUNT(state.work_secs); ++i) {
+        for (u32 i = 0; i < CountOf(state.work_secs); ++i) {
             work_secs_avg += (f32)state.work_secs[i];
         }
-        work_secs_avg /= (f32)ARRAY_COUNT(state.work_secs);
+        work_secs_avg /= (f32)CountOf(state.work_secs);
 
         // clock stuffs
         auto work_counter = get_time();
         f32 work_seconds_elapsed =
             get_seconds_elapsed(last_counter, work_counter, state.performance_counter_frequency);
         state.work_secs[state.work_ind++] = work_seconds_elapsed;
-        if (state.work_ind == ARRAY_COUNT(state.work_secs)) state.work_ind = 0;
+        if (state.work_ind == CountOf(state.work_secs)) state.work_ind = 0;
 
         bool is_sleep_granular        = false;
         f32 seconds_elapsed_for_frame = work_seconds_elapsed;
@@ -519,7 +516,7 @@ function i32 app_start(HINSTANCE hinst)
                     last_counter, get_time(), state.performance_counter_frequency);
             }
         } else {
-            printf("WARNING--> missed frame timing!!!\n");
+            PrintWarning("Missed frame timing!");
         }
 
         auto end_counter = get_time();

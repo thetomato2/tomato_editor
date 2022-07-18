@@ -16,7 +16,7 @@ struct Color
     };
 };
 
-inline Color v3_to_color(v3 col, f32 a = 1.0f)
+inline Color v3_to_color(v3f col, f32 a = 1.0f)
 {
     Color res;
 
@@ -40,14 +40,25 @@ inline Color f32_to_color(f32 col, f32 a = 1.0f)
     return res;
 }
 
-global constexpr v4 red_v4   = { 1.0f, 0.0f, 0.0f, 1.0f };
-global constexpr v4 green_v4 = { 0.0f, 1.0f, 0.0f, 1.0f };
-global constexpr v4 blue_v4  = { 0.0f, 0.0f, 1.0f, 1.0f };
-global constexpr v4 pink_v4  = { 1.0f, 0.0f, 1.0f, 1.0f };
+inline v3f color_u32_to_v3f(u32 col)
+{
+    v3f res;
 
-global constexpr v3 red_v3   = { 1.0f, 0.0f, 0.0f };
-global constexpr v3 green_v3 = { 0.0f, 1.0f, 0.0f };
-global constexpr v3 blue_v3  = { 0.0f, 0.0f, 1.0f };
+    res.r = (f32)((col & 0xff000000) >> 24);
+    res.b = (f32)((col & 0x00ff0000) >> 16);
+    res.g = (f32)((col & 0x0000ff00) >> 8);
+
+    return res;
+}
+
+global constexpr v4f red_v4   = { 1.0f, 0.0f, 0.0f, 1.0f };
+global constexpr v4f green_v4 = { 0.0f, 1.0f, 0.0f, 1.0f };
+global constexpr v4f blue_v4  = { 0.0f, 0.0f, 1.0f, 1.0f };
+global constexpr v4f pink_v4  = { 1.0f, 0.0f, 1.0f, 1.0f };
+
+global constexpr v3f red_v3   = { 1.0f, 0.0f, 0.0f };
+global constexpr v3f green_v3 = { 0.0f, 1.0f, 0.0f };
+global constexpr v3f blue_v3  = { 0.0f, 0.0f, 1.0f };
 
 // note: argb
 // global constexpr color red   =  0xff'00'00'ff ;

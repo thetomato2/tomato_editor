@@ -261,7 +261,7 @@ function void do_input(Input* input, HWND hwnd, i32 ms_scroll)
 
     input->mouse.scroll = ms_scroll;
 
-    for (szt key = 0; key < ARRAY_COUNT(input->mouse.buttons); ++key) {
+    for (szt key = 0; key < CountOf(input->mouse.buttons); ++key) {
         if (input->mouse.buttons[key].half_transition_cnt > 0 &&
             input->mouse.buttons[key].ended_down == 0)
             input->mouse.buttons[key].half_transition_cnt = 0;
@@ -272,7 +272,7 @@ function void do_input(Input* input, HWND hwnd, i32 ms_scroll)
     process_keyboard_message(input->mouse.buttons[1], ::GetKeyState(VK_RBUTTON) & (1 << 15));
     process_keyboard_message(input->mouse.buttons[2], ::GetKeyState(VK_MBUTTON) & (1 << 15));
 
-    for (szt key = 0; key < ARRAY_COUNT(input->keyboard.keys); ++key) {
+    for (szt key = 0; key < CountOf(input->keyboard.keys); ++key) {
         if (input->keyboard.keys[key].half_transition_cnt > 0 &&
             input->keyboard.keys[key].ended_down == 0)
             input->keyboard.keys[key].half_transition_cnt = 0;
@@ -324,7 +324,7 @@ function void do_input(Input* input, HWND hwnd, i32 ms_scroll)
             new_controller.min_y = new_controller.max_y = new_controller.end_left_stick_y =
                 stick_left_y;
 
-            for (szt button = 0; button < ARRAY_COUNT(old_controller.buttons); ++button) {
+            for (szt button = 0; button < CountOf(old_controller.buttons); ++button) {
                 if (!old_controller.buttons[button].ended_down)
                     old_controller.buttons[button].half_transition_cnt = 0;
             }
